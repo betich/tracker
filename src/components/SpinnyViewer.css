@@ -1,0 +1,195 @@
+.spinny-viewer {
+  align-items: center;
+  background: #fff;
+  cursor: grab;
+  display: flex;
+  height: 68dvh;
+  justify-content: center;
+  outline: none;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+  width: 100%;
+}
+
+.spinny-viewer:active {
+  cursor: grabbing;
+}
+
+.spinny-viewer:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--spinny-accent, #4845da);
+}
+
+.spinny-stage {
+  aspect-ratio: 440 / 502;
+  height: min(52dvh, 114.0909vw);
+  max-height: 100%;
+  max-width: 100%;
+  position: relative;
+  transform: translateY(-3dvh);
+  width: auto;
+}
+
+/* Separate from .spinny-stage so the hint animation owns its own transform. */
+.spinny-figure {
+  height: 100%;
+  position: relative;
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+  width: 100%;
+}
+
+/*
+ * The frames are cropped to the subject (394x876 out of the original 1080x1234),
+ * so .spinny-frame stands in for the full original canvas — the same box the
+ * uncropped image used to occupy — and each frame sits inside it at the crop's
+ * offset. Identical framing, a quarter of the pixels.
+ */
+.spinny-frame {
+  aspect-ratio: 1080 / 1234;
+  height: 100%;
+  inset: 0;
+  margin: auto;
+  position: absolute;
+  transform: scale(1.5);
+  width: auto;
+}
+
+/* All frames stay mounted and stacked: decoded up front, swapped by opacity. */
+.spinny-frame img {
+  display: block;
+  height: 70.988655%; /* 876 / 1234 */
+  left: 30.37037%; /* 328 / 1080 */
+  pointer-events: none;
+  position: absolute;
+  top: 17.017828%; /* 210 / 1234 */
+  width: 36.481481%; /* 394 / 1080 */
+}
+
+/*
+ * Footer ornament: fills whatever box it's given instead of claiming viewport
+ * height, and drops the hint — at this size the label would be unreadable.
+ * The frames have no alpha, so it keeps its white ground and reads as a sticker.
+ */
+.spinny-viewer.is-compact {
+  border-radius: 1rem;
+  height: 100%;
+  width: 100%;
+}
+
+.spinny-viewer.is-compact .spinny-stage {
+  height: 100%;
+  transform: none;
+  width: 100%;
+}
+
+.spinny-viewer.is-compact .spinny-frame {
+  transform: scale(1.62);
+}
+
+.spinny-viewer.is-compact .spinny-hint {
+  display: none;
+}
+
+.spinny-hint {
+  align-items: center;
+  bottom: max(2dvh, 0.75rem);
+  color: var(--spinny-accent, #4845da);
+  display: flex;
+  font-family: "Roboto Mono", "Sarabun", monospace;
+  font-size: 0.6875rem;
+  gap: 0.75rem;
+  letter-spacing: 0.14em;
+  margin: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.4s ease;
+}
+
+.spinny-hint-arrow {
+  color: var(--spinny-accent-soft, #b9b8ef);
+}
+
+.spinny-viewer:not(.is-hinting) .spinny-hint {
+  opacity: 0;
+}
+
+/*
+ * Until the first interaction, the figure fades toward the white page and drifts,
+ * while the label counter-pulses — a breathing invitation to turn it.
+ */
+.spinny-viewer.is-hinting .spinny-figure {
+  animation: spinny-breathe 2.8s ease-in-out infinite;
+}
+
+.spinny-viewer.is-hinting .spinny-hint {
+  animation: spinny-hint-pulse 2.8s ease-in-out infinite;
+}
+
+.spinny-viewer.is-hinting .spinny-hint-arrow:first-child {
+  animation: spinny-nudge-left 2.8s ease-in-out infinite;
+}
+
+.spinny-viewer.is-hinting .spinny-hint-arrow:last-child {
+  animation: spinny-nudge-right 2.8s ease-in-out infinite;
+}
+
+@keyframes spinny-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 0.38;
+    transform: translate3d(2.5%, 0, 0);
+  }
+}
+
+@keyframes spinny-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes spinny-nudge-left {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-4px);
+  }
+}
+
+@keyframes spinny-nudge-right {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinny-viewer.is-hinting .spinny-figure,
+  .spinny-viewer.is-hinting .spinny-hint,
+  .spinny-viewer.is-hinting .spinny-hint-arrow {
+    animation: none;
+  }
+
+  .spinny-figure {
+    transition: none;
+  }
+}

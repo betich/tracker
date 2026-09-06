@@ -1,0 +1,16 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "target": "ES2020",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@tracker/*": ["./worker/src/*"],
+      "@config": ["./tracker.config.ts"]
+    }
+  },
+  // worker/ targets the Workers runtime and has its own tsconfig.
+  "exclude": ["dist", "worker"]
+}

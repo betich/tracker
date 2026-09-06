@@ -1,0 +1,9 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import AdminApp from "@/components/track/AdminApp";
+import { config } from "@config";
+---
+
+<AppLayout title={`${config.subject} · admin`} description="The device holding the tracker.">
+  <AdminApp client:only="react" />
+</AppLayout>

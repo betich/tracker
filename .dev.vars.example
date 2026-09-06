@@ -1,0 +1,5 @@
+# The key /admin expects in its ?key= parameter. Anyone holding it can take the
+# tracker and broadcast a position, so treat it like a password.
+#
+# Generate one with:  openssl rand -hex 20
+ADMIN_KEY=

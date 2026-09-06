@@ -1,0 +1,115 @@
+/*
+ * /track is an app surface, not a page of the site: it takes over the viewport,
+ * runs entirely in mono, and uses the brand indigo as its ground. `--ground` and
+ * `--glow` are written from JS on every position update — the screen itself is
+ * the proximity readout, brightening as the bundit closes in.
+ */
+.track {
+  --ground: rgb(8 7 28);
+  --glow: rgb(160 158 255 / 0.06);
+  --ink: #f4f3ff;
+  --muted: rgb(244 243 255 / 0.55);
+  --hairline: rgb(244 243 255 / 0.16);
+  --tick: rgb(244 243 255 / 0.28);
+  --tick-major: rgb(244 243 255 / 0.7);
+  --needle-tail: rgb(244 243 255 / 0.22);
+  /* The direction cue on the dial, and what it becomes once you're pointed right. */
+  --beacon: #ffd166;
+  --beacon-locked: #7ff0a8;
+  --live: #7ff0a8;
+  --stale: #ffd166;
+  --dead: rgb(244 243 255 / 0.4);
+
+  /* A definite height, not just a floor: descendants size with height:100%,
+     and Leaflet needs a measurable box or it renders into nothing. */
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--ground);
+  color: var(--ink);
+  /* Long enough to read as a glow rising, short enough to feel responsive. */
+  transition: background-color 700ms cubic-bezier(0.25, 0.6, 0.3, 1);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The halo sits behind the dial and swells with proximity. */
+.track-glow {
+  background: radial-gradient(circle at 50% 50%, var(--glow) 0%, transparent 68%);
+  transition: background 700ms cubic-bezier(0.25, 0.6, 0.3, 1);
+}
+
+/* Tabular figures stop the huge readout from twitching as it counts. */
+.track-figure {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  /* Absurd on purpose: the number should be readable at arm's length, running. */
+  font-size: clamp(5rem, 38vw, 15rem);
+  line-height: 0.78;
+  letter-spacing: -0.055em;
+}
+
+.track-unit {
+  font-size: clamp(1.25rem, 7vw, 2.5rem);
+  letter-spacing: 0.06em;
+}
+
+.track-label {
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+/* Leaflet ships its own light chrome; sink it into the indigo ground. */
+.track .leaflet-container {
+  background: rgb(0 0 0 / 0.25);
+  font-family: inherit;
+}
+
+.track .leaflet-control-attribution {
+  background: rgb(0 0 0 / 0.4);
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.track .leaflet-control-attribution a {
+  color: var(--muted);
+}
+
+.track .leaflet-bar a {
+  background: rgb(0 0 0 / 0.45);
+  color: var(--ink);
+  border-color: var(--hairline);
+}
+
+/* Raster OSM tiles are daylight-bright; darken and tint them into the surface. */
+.track .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(185deg) brightness(0.82) contrast(0.86) saturate(0.7);
+}
+
+.track-pulse {
+  animation: track-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes track-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track,
+  .track-glow {
+    transition: none;
+  }
+  .track-pulse {
+    animation: none;
+    opacity: 0.35;
+  }
+}

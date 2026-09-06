@@ -1,0 +1,39 @@
+---
+/**
+ * The whole document for an app-like page. Deliberately thin: this is a tool
+ * that takes over the viewport, not a page of a website, so there is no
+ * analytics, no OG or Twitter card, no RSS or sitemap link — and the only font
+ * is the monospace the UI is built in.
+ */
+import { config } from "@config";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = `Where ${config.subject} is.` } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- viewport-fit=cover so the safe-area insets the layout relies on resolve. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#08071c" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Sarabun:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-[#08071c]">
+    <slot />
+  </body>
+</html>

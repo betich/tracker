@@ -1,0 +1,43 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tracker",
+  "main": "worker/src/index.ts",
+  "compatibility_date": "2025-01-01",
+
+  /*
+   * One Worker serves both halves: the built Astro pages come straight from
+   * `dist`, and only the three API paths below reach the Worker script. Because
+   * the pages and the API share an origin, the frontend talks to relative URLs
+   * and needs no configured endpoint.
+   */
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/ws", "/state", "/photo"],
+    "not_found_handling": "404-page"
+  },
+
+  "durable_objects": {
+    "bindings": [{ "name": "TRACKER", "class_name": "Tracker" }]
+  },
+
+  /*
+   * The declarative form, rather than a `migrations` array: it is what lets a
+   * fresh deploy — including one made by the Deploy to Cloudflare button on
+   * someone else's account — provision the namespace on its own.
+   */
+  "exports": {
+    "Tracker": { "type": "durable-object", "storage": "sqlite" }
+  },
+
+  "vars": {
+    // Which subject this deployment tracks. Changing it starts a clean slate:
+    // a different id is a different Durable Object, with its own timeline.
+    "TRACKER_ID": "bundit-live",
+    // Extra origins allowed to reach the API. Same-origin is always allowed,
+    // so this is only needed when the frontend is hosted somewhere else.
+    "ALLOWED_ORIGINS": ""
+  },
+
+  "observability": { "enabled": true }
+}

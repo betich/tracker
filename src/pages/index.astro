@@ -1,0 +1,13 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import TrackApp from "@/components/track/TrackApp";
+import { config } from "@config";
+---
+
+<AppLayout title={config.subject}>
+  <!--
+    client:only because the whole screen is built from live sensors — there is
+    nothing meaningful to render on the server.
+  -->
+  <TrackApp client:only="react" />
+</AppLayout>

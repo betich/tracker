@@ -1,0 +1,21 @@
+# build output
+dist/
+
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# local secrets and wrangler state
+.dev.vars
+.wrangler/
+.env
+.env.production
+
+# logs
+npm-debug.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
