@@ -77,9 +77,9 @@ export default {
         subject: body.subject ?? "",
         phone: body.phone ?? null,
         lineId: body.lineId ?? null,
-        // Best-effort attribution for the rate limit; spoofable, but this is a
-        // speed bump against one visitor filling the account, not an identity.
-        who: request.headers.get("CF-Connecting-IP") ?? "unknown",
+        // Cloudflare sets this at the edge on every real request, so its
+        // absence means local development rather than an anonymous caller.
+        who: request.headers.get("CF-Connecting-IP"),
       });
       const status = "error" in made ? 429 : 200;
       return Response.json(made, { status, headers: { ...cors, "Cache-Control": "no-store" } });

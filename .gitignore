@@ -7,7 +7,7 @@ dist/
 # dependencies
 node_modules/
 
-# local secrets and wrangler state
+# local secrets, environment and wrangler state
 .dev.vars
 .wrangler/
 .env
@@ -19,3 +19,6 @@ pnpm-debug.log*
 
 # macOS
 .DS_Store
+
+# the live admin key, for reference
+.admin-key

@@ -7,9 +7,13 @@ const EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 /** How often the sweep runs. */
 const SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
-/** Per-address creation budget, so one visitor cannot fill the account. */
+/**
+ * Per-address creation budget, so one visitor cannot fill the account. Kept
+ * loose: behind carrier NAT a lot of unrelated people share one address, and
+ * this is a speed bump rather than a gate.
+ */
 const RATE_WINDOW_MS = 60 * 60 * 1000;
-const RATE_LIMIT = 5;
+const RATE_LIMIT = 10;
 
 /** No vowels and no look-alikes, so a slug read aloud survives the journey. */
 const SLUG_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
@@ -61,17 +65,23 @@ export class Registry extends DurableObject<Env> {
     subject: string;
     phone: string | null;
     lineId: string | null;
-    who: string;
+    /** Caller's address, or null when there is none to attribute to. */
+    who: string | null;
   }): Promise<Created | { error: string }> {
     const subject = (input.subject ?? "").trim().slice(0, 40);
     if (!subject) return { error: "Give the tracker a name." };
 
     const since = Date.now() - RATE_WINDOW_MS;
     this.ctx.storage.sql.exec("DELETE FROM creations WHERE at < ?", since);
-    const recent = this.ctx.storage.sql
-      .exec<{ n: number }>("SELECT COUNT(*) AS n FROM creations WHERE who = ?", input.who)
-      .one().n;
-    if (recent >= RATE_LIMIT) return { error: "That's a lot of trackers. Try again later." };
+
+    // No address means no edge in front of us — local development. Counting
+    // those would put every developer in one shared bucket for no benefit.
+    if (input.who !== null) {
+      const recent = this.ctx.storage.sql
+        .exec<{ n: number }>("SELECT COUNT(*) AS n FROM creations WHERE who = ?", input.who)
+        .one().n;
+      if (recent >= RATE_LIMIT) return { error: "That's a lot of trackers. Try again later." };
+    }
 
     let slug = "";
     for (let attempt = 0; attempt < 12; attempt++) {
@@ -98,7 +108,9 @@ export class Registry extends DurableObject<Env> {
       now,
       now,
     );
-    this.ctx.storage.sql.exec("INSERT INTO creations (at, who) VALUES (?, ?)", now, input.who);
+    if (input.who !== null) {
+      this.ctx.storage.sql.exec("INSERT INTO creations (at, who) VALUES (?, ?)", now, input.who);
+    }
 
     return { slug, adminKey };
   }

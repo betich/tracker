@@ -1,9 +1,8 @@
 /**
  * Everything a deployment might want to change, in one place.
  *
- * This is the only file you need to edit after cloning. It is read at build
- * time, so a change needs a rebuild — the tracked subject and the contact
- * details are baked into the pages, not fetched.
+ * Read at build time, so a change needs a rebuild — the tracked subject and the
+ * contact details are baked into the pages, not fetched.
  */
 
 export interface TrackerConfig {
@@ -17,8 +16,12 @@ export interface TrackerConfig {
   subject: string;
 
   /**
-   * The buttons fixed to the bottom right of every tab. Set either to null to
-   * hide that button; set both to null and the pair disappears entirely.
+   * The call and LINE buttons fixed to the bottom right of every tab.
+   *
+   * Off unless switched on. These publish a personal phone number to anyone who
+   * opens the page, so they stay dark until someone actually wants to be
+   * reached — and because the switch is read at build time, a build with it off
+   * does not carry the number at all.
    */
   contacts: {
     /** Dialled by the phone button, in full international form. */
@@ -34,12 +37,22 @@ export interface TrackerConfig {
   mapFallbackCenter: { lat: number; lon: number };
 }
 
+/** Accepts the shapes a shell or a build UI is likely to hand over. */
+const enabled = (value: string | undefined) =>
+  value === "1" || value?.toLowerCase() === "true";
+
+/*
+ * Contacts live in the environment rather than in this file, so a public repo
+ * never carries somebody's phone number. See .env.example.
+ */
+const showContacts = enabled(import.meta.env.PUBLIC_CONTACTS);
+
 export const config: TrackerConfig = {
   subject: "bundit",
 
   contacts: {
-    phone: "+66863862633",
-    lineId: "0863862633",
+    phone: showContacts ? (import.meta.env.PUBLIC_CONTACT_PHONE ?? null) : null,
+    lineId: showContacts ? (import.meta.env.PUBLIC_CONTACT_LINE ?? null) : null,
   },
 
   portrait: true,

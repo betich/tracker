@@ -22,15 +22,23 @@ if (!KEY) {
  * arbitrary tracker id — only registered ones, each by its own key. So when the
  * registry is enabled, mint a throwaway tracker and test against that instead.
  */
-const minted = await fetch(`${BASE}/api/create`, {
+const created = await fetch(`${BASE}/api/create`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ subject: "api test" }),
-}).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+}).catch(() => null);
 
-if (minted?.slug) {
-  SCRATCH = minted.slug;
-  KEY = minted.adminKey;
+if (created && created.status !== 404) {
+  // Multi-tenant. There is no useful fallback here: the instance key cannot
+  // drive an unregistered id, so a refusal has to stop the run rather than
+  // quietly produce a screenful of unrelated failures.
+  const body = await created.json().catch(() => null);
+  if (!body?.slug) {
+    console.error(`Could not create a tracker: ${body?.error ?? created.status}`);
+    process.exit(2);
+  }
+  SCRATCH = body.slug;
+  KEY = body.adminKey;
   console.log(`(shared deployment — testing against minted tracker ${SCRATCH})\n`);
 }
 

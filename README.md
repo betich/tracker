@@ -49,7 +49,9 @@ overlapping fixes is whatever the noise says.
 newest first — with a like on each. Likes are deduplicated per browser by a
 throwaway id in local storage. No accounts; a new browser is a new person.
 
-**Call and LINE buttons**, fixed bottom right, both copying their number.
+**Call and LINE buttons**, fixed bottom right, both copying their number —
+off by default, since they publish a personal phone number to every visitor.
+See *Configure*.
 
 ## The admin — `/admin?key=…`
 
@@ -125,10 +127,25 @@ pnpm deploy
 
 ## Configure
 
-Everything you are likely to change is in [`tracker.config.ts`](./tracker.config.ts):
-the subject's name, the phone and LINE contacts (set either to `null` to hide
-that button), whether the footer portrait appears, and where the map opens
-before any position is known.
+[`tracker.config.ts`](./tracker.config.ts) holds the subject's name, whether the
+footer portrait appears, and where the map opens before any position is known.
+
+**Contacts live in the environment, not in this file**, so a public repo never
+carries somebody's phone number. Copy [`.env.example`](./.env.example) to `.env`
+locally, or set the same variables in the Worker's build configuration:
+
+```sh
+PUBLIC_CONTACTS=1                  # off by any other value
+PUBLIC_CONTACT_PHONE=+66…          # either may be blank to show just the other
+PUBLIC_CONTACT_LINE=08…
+```
+
+`PUBLIC_CONTACTS` is a switch rather than an implication of the numbers being
+set, so you can leave them configured and still turn the buttons off between
+outings. It is read at build time: with the switch off, the numbers are not
+compiled into the pages at all. A tracker created through `/new` is separate —
+its contacts are whatever its creator typed in, since supplying them is the
+opt-in.
 
 Two things live in [`wrangler.jsonc`](./wrangler.jsonc) because the server needs
 them: `TRACKER_ID`, which picks the Durable Object — changing it starts a clean
