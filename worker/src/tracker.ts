@@ -6,6 +6,7 @@ import {
   MAX_VIEWER_ID,
   UPDATE_HISTORY,
   type ClientMessage,
+  type ImportedUpdate,
   type Fix,
   type ServerMessage,
   type Update,
@@ -173,6 +174,70 @@ export class Tracker extends DurableObject<Env> {
     for (const ws of this.ctx.getWebSockets()) send(ws, { t: "update", update });
   }
 
+  /**
+   * Restore updates recorded elsewhere, keeping their ids, timestamps and like
+   * counts. Existing ids are left alone, so running this twice is harmless.
+   *
+   * Likes arrive as a number rather than as the people who gave them, so they
+   * are recreated as placeholder rows. The tally is preserved; the original
+   * likers cannot take theirs back.
+   */
+  async importState(incoming: ImportedUpdate[], fix: Fix | null): Promise<{ added: number; skipped: number }> {
+    let added = 0;
+    let skipped = 0;
+
+    for (const update of incoming) {
+      if (!isImportable(update)) {
+        skipped++;
+        continue;
+      }
+
+      const exists = this.ctx.storage.sql
+        .exec<{ n: number }>("SELECT COUNT(*) AS n FROM updates WHERE id = ?", update.id)
+        .one().n;
+      if (exists > 0) {
+        skipped++;
+        continue;
+      }
+
+      this.ctx.storage.sql.exec(
+        "INSERT INTO updates (id, text, photo, ts) VALUES (?, ?, ?, ?)",
+        update.id,
+        update.text.slice(0, MAX_UPDATE_TEXT),
+        update.photo,
+        Math.round(update.ts),
+      );
+      for (let n = 0; n < Math.min(update.likes, 10_000); n++) {
+        this.ctx.storage.sql.exec(
+          "INSERT OR IGNORE INTO likes (update_id, viewer) VALUES (?, ?)",
+          update.id,
+          `restored:${n}`,
+        );
+      }
+      added++;
+    }
+
+    this.ctx.storage.sql.exec(
+      "DELETE FROM updates WHERE id NOT IN (SELECT id FROM updates ORDER BY ts DESC LIMIT ?)",
+      UPDATE_HISTORY,
+    );
+    this.ctx.storage.sql.exec("DELETE FROM likes WHERE update_id NOT IN (SELECT id FROM updates)");
+
+    if (fix && isPlausible(fix)) {
+      const restored: Fix = { ...fix, ts: fix.ts };
+      await this.ctx.storage.put("fix", restored);
+      this.fix = restored;
+    }
+
+    const timeline = this.timeline();
+    for (const ws of this.ctx.getWebSockets()) {
+      send(ws, { t: "updates", updates: timeline });
+      send(ws, this.state());
+    }
+
+    return { added, skipped };
+  }
+
   /** Wipe everything. Called when a hosted tracker expires. */
   async purge(): Promise<void> {
     for (const ws of this.ctx.getWebSockets()) ws.close(1001, "expired");
@@ -263,6 +328,23 @@ function send(ws: WebSocket, message: ServerMessage): void {
   } catch {
     // Socket already gone; the close handler will tidy up.
   }
+}
+
+/** An imported row has to be as well-formed as one we would have written. */
+function isImportable(update: ImportedUpdate): boolean {
+  return (
+    typeof update?.id === "string" &&
+    /^[A-Za-z0-9_-]{1,64}$/.test(update.id) &&
+    typeof update.text === "string" &&
+    (update.photo === null ||
+      (typeof update.photo === "string" &&
+        update.photo.startsWith("data:") &&
+        update.photo.length <= MAX_PHOTO_CHARS)) &&
+    Number.isFinite(update.ts) &&
+    Number.isFinite(update.likes) &&
+    update.likes >= 0 &&
+    (update.text.trim().length > 0 || update.photo !== null)
+  );
 }
 
 /** Reject nonsense before it reaches storage and every viewer's compass. */

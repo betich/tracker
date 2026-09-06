@@ -22,9 +22,16 @@ if (!KEY) {
  * arbitrary tracker id — only registered ones, each by its own key. So when the
  * registry is enabled, mint a throwaway tracker and test against that instead.
  */
+/*
+ * A bucket of our own for the creation rate limit. Cloudflare overwrites this
+ * header at the edge, so it changes nothing in production — it only stops
+ * repeated local runs from exhausting one shared allowance.
+ */
+const RUN_IP = `198.51.100.${Math.floor(Math.random() * 254) + 1}`;
+
 const created = await fetch(`${BASE}/api/create`, {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", "CF-Connecting-IP": RUN_IP },
   body: JSON.stringify({ subject: "api test" }),
 }).catch(() => null);
 

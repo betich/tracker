@@ -181,6 +181,29 @@ deployment — so it never touches a live timeline.
 state isolation, and every direction of the key-crossing checks above. Point it
 at a worker running `--env hosted`.
 
+## Moving a timeline
+
+`POST /api/import` restores updates recorded elsewhere — moving between
+deployments, or putting back a backup — keeping their ids, timestamps and like
+counts, so history comes back as it was rather than as a pile of things posted
+just now. It takes the same admin key as posting and is scoped to the tracker
+that key controls.
+
+```jsonc
+POST /api/import?key=…            // add &tracker=<slug> for a hosted one
+{
+  "fix": { "lat": 13.7, "lon": 100.5, "acc": null, "spd": null, "hdg": null, "ts": 0 },
+  "updates": [
+    { "id": "…", "text": "…", "photo": "data:image/jpeg;base64,…", "ts": 0, "likes": 3 }
+  ]
+}
+```
+
+Ids already present are skipped, so re-running is harmless — send it in batches
+rather than putting every photo in one request. Likes arrive as a number rather
+than as the people who gave them, so they are recreated as placeholder rows:
+the tally is preserved, but the original likers cannot take theirs back.
+
 ## How it works
 
 A Durable Object per tracked subject holds the last fix and the timeline, and

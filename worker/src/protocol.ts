@@ -108,5 +108,19 @@ export interface HostedTracker {
   lineId: string | null;
 }
 
+/**
+ * One update as it travels for a restore: the whole row, including the id and
+ * the original timestamp, so history comes back as it was rather than as a pile
+ * of things posted just now.
+ */
+export interface ImportedUpdate {
+  id: string;
+  text: string;
+  /** Data URL, or null for a text-only update. */
+  photo: string | null;
+  ts: number;
+  likes: number;
+}
+
 /** Longest accepted viewer id. Long enough for a UUID, short enough to bound the table. */
 export const MAX_VIEWER_ID = 64;

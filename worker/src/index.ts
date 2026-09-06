@@ -24,7 +24,7 @@ export interface Env {
 }
 
 /** The paths `run_worker_first` routes here; everything else is a static asset. */
-const API_PATHS = new Set(["/ws", "/state", "/photo", "/api/create", "/api/tracker"]);
+const API_PATHS = new Set(["/ws", "/state", "/photo", "/api/create", "/api/tracker", "/api/import"]);
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -77,8 +77,12 @@ export default {
         subject: body.subject ?? "",
         phone: body.phone ?? null,
         lineId: body.lineId ?? null,
-        // Cloudflare sets this at the edge on every real request, so its
-        // absence means local development rather than an anonymous caller.
+        /*
+         * Cloudflare overwrites this at the edge, so it cannot be spoofed in
+         * production. `wrangler dev` supplies one too, which is why local test
+         * runs send their own to get a bucket of their own rather than sharing
+         * the developer's. Null is only reachable on some other runtime.
+         */
         who: request.headers.get("CF-Connecting-IP"),
       });
       const status = "error" in made ? 429 : 200;
@@ -97,6 +101,34 @@ export default {
     // Deliberately not `id`: /photo already uses that for the photo's own id.
     const trackerId = url.searchParams.get("tracker") || env.TRACKER_ID || DEFAULT_TRACKER_ID;
     const stub = env.TRACKER.getByName(trackerId);
+
+    /*
+     * Restore a timeline recorded elsewhere — moving between deployments, or
+     * putting back a backup. Admin-only, and scoped to the tracker the key
+     * controls, so it is no more privileged than posting.
+     */
+    if (url.pathname === "/api/import") {
+      if (request.method !== "POST") return new Response("use POST", { status: 405, headers: cors });
+      if (!(await isAdmin(url, trackerId, env))) {
+        return new Response("unauthorized", { status: 401, headers: cors });
+      }
+
+      let body: { updates?: unknown; fix?: unknown };
+      try {
+        body = (await request.json()) as typeof body;
+      } catch {
+        return new Response("bad request", { status: 400, headers: cors });
+      }
+      if (!Array.isArray(body.updates)) {
+        return new Response("expected updates[]", { status: 400, headers: cors });
+      }
+
+      const result = await stub.importState(
+        body.updates as Parameters<Tracker["importState"]>[0],
+        (body.fix ?? null) as Parameters<Tracker["importState"]>[1],
+      );
+      return Response.json(result, { headers: { ...cors, "Cache-Control": "no-store" } });
+    }
 
     if (url.pathname === "/ws") {
       if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {

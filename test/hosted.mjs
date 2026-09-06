@@ -10,8 +10,17 @@ const OWN_KEY = process.env.ADMIN_KEY;
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok?"ok  ":"FAIL"}  ${n}${d?`  — ${d}`:""}`); };
 
+/*
+ * A bucket of our own for the creation rate limit. Cloudflare overwrites this
+ * header at the edge, so it changes nothing in production — it only stops
+ * repeated local runs from exhausting one shared allowance.
+ */
+const RUN_IP = `198.51.100.${Math.floor(Math.random() * 254) + 1}`;
+
 const make = (body) => fetch(`${BASE}/api/create`, {
-  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  method: "POST",
+  headers: { "Content-Type": "application/json", "CF-Connecting-IP": RUN_IP },
+  body: JSON.stringify(body),
 }).then(async (r) => ({ status: r.status, body: await r.json() }));
 
 const wsBase = BASE.replace(/^http/, "ws");
