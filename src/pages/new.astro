@@ -1,0 +1,8 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import CreateTracker from "@/components/track/CreateTracker";
+---
+
+<AppLayout title="new tracker" description="Make a tracker for someone.">
+  <CreateTracker client:only="react" />
+</AppLayout>

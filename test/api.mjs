@@ -9,12 +9,29 @@
  */
 
 const BASE = process.env.BASE ?? "http://localhost:8788";
-const KEY = process.env.ADMIN_KEY;
-const SCRATCH = `test-${Date.now().toString(36)}`;
+let KEY = process.env.ADMIN_KEY;
+let SCRATCH = `test-${Date.now().toString(36)}`;
 
 if (!KEY) {
   console.error("Set ADMIN_KEY to the value in .dev.vars");
   process.exit(2);
+}
+
+/*
+ * On a shared deployment the instance key deliberately cannot drive an
+ * arbitrary tracker id — only registered ones, each by its own key. So when the
+ * registry is enabled, mint a throwaway tracker and test against that instead.
+ */
+const minted = await fetch(`${BASE}/api/create`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ subject: "api test" }),
+}).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+
+if (minted?.slug) {
+  SCRATCH = minted.slug;
+  KEY = minted.adminKey;
+  console.log(`(shared deployment — testing against minted tracker ${SCRATCH})\n`);
 }
 
 const results = [];

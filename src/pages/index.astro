@@ -1,6 +1,6 @@
 ---
 import AppLayout from "@/layouts/AppLayout.astro";
-import TrackApp from "@/components/track/TrackApp";
+import TrackRoot from "@/components/track/TrackRoot";
 import { config } from "@config";
 ---
 
@@ -9,5 +9,5 @@ import { config } from "@config";
     client:only because the whole screen is built from live sensors — there is
     nothing meaningful to render on the server.
   -->
-  <TrackApp client:only="react" />
+  <TrackRoot client:only="react" />
 </AppLayout>

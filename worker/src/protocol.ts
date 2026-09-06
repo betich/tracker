@@ -97,5 +97,16 @@ export const MAX_PHOTO_CHARS = 900_000;
 /** How many updates are kept; older ones are dropped as new ones arrive. */
 export const UPDATE_HISTORY = 50;
 
+/**
+ * A tracker hosted on a shared deployment, as the page needs it. Only ever the
+ * public half — the admin key is stored hashed and never travels.
+ */
+export interface HostedTracker {
+  slug: string;
+  subject: string;
+  phone: string | null;
+  lineId: string | null;
+}
+
 /** Longest accepted viewer id. Long enough for a UUID, short enough to bound the table. */
 export const MAX_VIEWER_ID = 64;

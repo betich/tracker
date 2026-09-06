@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FaLine, FaPhone } from "react-icons/fa";
 
-import { config } from "@config";
-
-const { phone: PHONE, lineId: LINE_ID } = config.contacts;
+import { useTenant } from "./tenant";
 
 const COPIED_MS = 1800;
 
@@ -44,6 +42,8 @@ type Copied = "phone" | "line" | null;
  * pasting into "add by phone number" is the only way to act on an ID.
  */
 export default function ContactButtons() {
+  const { contacts } = useTenant();
+  const { phone: PHONE, lineId: LINE_ID } = contacts;
   const [copied, setCopied] = useState<Copied>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

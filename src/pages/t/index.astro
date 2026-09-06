@@ -1,0 +1,13 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import TrackRoot from "@/components/track/TrackRoot";
+---
+
+<!--
+  One built page backs every hosted tracker: the Worker serves this HTML for any
+  /t/<slug>, and the client reads the slug out of the URL. That is what lets a
+  static build serve an unbounded number of trackers.
+-->
+<AppLayout title="tracker" description="Where they are.">
+  <TrackRoot client:only="react" />
+</AppLayout>

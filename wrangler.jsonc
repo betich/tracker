@@ -13,7 +13,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/ws", "/state", "/photo"],
+    "run_worker_first": ["/ws", "/state", "/photo", "/api/*", "/t/*"],
     "not_found_handling": "404-page"
   },
 
@@ -39,5 +39,37 @@
     "ALLOWED_ORIGINS": ""
   },
 
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+
+  /*
+   * The hosted instance at track.betich.me, which additionally lets anyone
+   * create their own tracker. Kept in an environment so the default config
+   * above stays deployable by anyone — a self-host owns neither this domain
+   * nor any need for the multi-tenant routes.
+   *
+   *   npx wrangler deploy --env hosted
+   */
+  "env": {
+    "hosted": {
+      "name": "tracker",
+      "routes": [{ "pattern": "track.betich.me", "custom_domain": true }],
+      "durable_objects": {
+        "bindings": [
+          { "name": "TRACKER", "class_name": "Tracker" },
+          { "name": "REGISTRY", "class_name": "Registry" }
+        ]
+      },
+      "exports": {
+        "Tracker": { "type": "durable-object", "storage": "sqlite" },
+        "Registry": { "type": "durable-object", "storage": "sqlite" }
+      },
+      "vars": {
+        "TRACKER_ID": "bundit-live",
+        "ALLOWED_ORIGINS": "",
+        // Turns on /new, /t/<slug> and the registry.
+        "MULTI_TENANT": "1"
+      },
+      "observability": { "enabled": true }
+    }
+  }
 }

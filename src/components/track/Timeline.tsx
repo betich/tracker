@@ -5,6 +5,7 @@ import type { ClientMessage } from "@tracker/protocol";
 import { photoUrl } from "./endpoint";
 import { formatAge } from "./geo";
 import { readLiked, viewerId, writeLiked } from "./viewer";
+import { useTenant } from "./tenant";
 
 interface TimelineProps {
   updates: Update[];
@@ -19,8 +20,9 @@ interface TimelineProps {
  * and the text stays at the same absurd size as the distance readout.
  */
 export default function Timeline({ updates, now, send }: TimelineProps) {
+  const { slug, storagePrefix } = useTenant();
   // Seeded once from storage; the server owns the counts, this owns "did I".
-  const [liked, setLiked] = useState<Set<string>>(() => readLiked());
+  const [liked, setLiked] = useState<Set<string>>(() => readLiked(storagePrefix));
 
   const toggleLike = useCallback(
     (id: string) => {
@@ -28,12 +30,12 @@ export default function Timeline({ updates, now, send }: TimelineProps) {
         const next = new Set(current);
         const on = !next.has(id);
         on ? next.add(id) : next.delete(id);
-        writeLiked(next);
+        writeLiked(storagePrefix, next);
         send({ t: "like", id, viewer: viewerId(), on });
         return next;
       });
     },
-    [send],
+    [send, storagePrefix],
   );
 
   if (updates.length === 0) {
@@ -58,7 +60,7 @@ export default function Timeline({ updates, now, send }: TimelineProps) {
           >
             {update.hasPhoto && (
               <img
-                src={photoUrl(update.id)}
+                src={photoUrl(update.id, slug)}
                 alt=""
                 loading={index < 2 ? "eager" : "lazy"}
                 decoding="async"

@@ -1,12 +1,20 @@
 import { CLOSE, DEFAULT_TRACKER_ID, type ServerMessage } from "./protocol";
 import { Tracker } from "./tracker";
+import { Registry } from "./registry";
 
-export { Tracker };
+export { Tracker, Registry };
+
+/** Where a hosted tracker's own pages live: /t/<slug> and /t/<slug>/admin. */
+const HOSTED_PATH = /^\/t\/([0-9a-z]{4,32})(\/admin)?\/?$/;
 
 export interface Env {
   TRACKER: DurableObjectNamespace<Tracker>;
   /** The built Astro site, served for everything that is not an API path. */
   ASSETS: Fetcher;
+  /** Only bound on the shared deployment; absent when self-hosting one person. */
+  REGISTRY?: DurableObjectNamespace<Registry>;
+  /** "1" turns on /new and /t/<slug>. */
+  MULTI_TENANT?: string;
   /** Which subject this deployment tracks. One Durable Object per id. */
   TRACKER_ID?: string;
   /** Extra origins allowed to reach the API. Same-origin never needs listing. */
@@ -16,11 +24,26 @@ export interface Env {
 }
 
 /** The paths `run_worker_first` routes here; everything else is a static asset. */
-const API_PATHS = new Set(["/ws", "/state", "/photo"]);
+const API_PATHS = new Set(["/ws", "/state", "/photo", "/api/create", "/api/tracker"]);
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const hosted = hostedTracker(env) ? HOSTED_PATH.exec(url.pathname) : null;
+
+    /*
+     * Every hosted tracker shares two built pages; the slug lives in the URL
+     * and the client reads it at runtime. Serving the same HTML for any slug is
+     * what lets a static build back an unbounded number of trackers.
+     */
+    if (hosted) {
+      // The pretty path, not /index.html: the asset layer redirects .html URLs
+      // to their canonical form, and a redirect would strip the slug out of the
+      // address bar — leaving the page with nothing to resolve.
+      const page = hosted[2] ? "/t/admin/" : "/t/";
+      return env.ASSETS.fetch(new Request(new URL(page, url.origin), request));
+    }
+
     if (!API_PATHS.has(url.pathname)) return env.ASSETS.fetch(request);
 
     const origin = request.headers.get("Origin");
@@ -37,18 +60,52 @@ export default {
       return new Response("forbidden origin", { status: 403 });
     }
 
+    const registry = hostedTracker(env);
+
+    if (url.pathname === "/api/create") {
+      if (!registry) return new Response("not enabled", { status: 404, headers: cors });
+      if (request.method !== "POST") return new Response("use POST", { status: 405, headers: cors });
+
+      let body: { subject?: string; phone?: string | null; lineId?: string | null };
+      try {
+        body = (await request.json()) as typeof body;
+      } catch {
+        return new Response("bad request", { status: 400, headers: cors });
+      }
+
+      const made = await registry.create({
+        subject: body.subject ?? "",
+        phone: body.phone ?? null,
+        lineId: body.lineId ?? null,
+        // Best-effort attribution for the rate limit; spoofable, but this is a
+        // speed bump against one visitor filling the account, not an identity.
+        who: request.headers.get("CF-Connecting-IP") ?? "unknown",
+      });
+      const status = "error" in made ? 429 : 200;
+      return Response.json(made, { status, headers: { ...cors, "Cache-Control": "no-store" } });
+    }
+
+    if (url.pathname === "/api/tracker") {
+      if (!registry) return new Response("not enabled", { status: 404, headers: cors });
+      const slug = url.searchParams.get("slug") ?? "";
+      const found = await registry.lookup(slug);
+      if (!found) return new Response("not found", { status: 404, headers: cors });
+      registry.touch(slug);
+      return Response.json(found, { headers: { ...cors, "Cache-Control": "no-store" } });
+    }
+
     // Deliberately not `id`: /photo already uses that for the photo's own id.
-    const stub = env.TRACKER.getByName(
-      url.searchParams.get("tracker") || env.TRACKER_ID || DEFAULT_TRACKER_ID,
-    );
+    const trackerId = url.searchParams.get("tracker") || env.TRACKER_ID || DEFAULT_TRACKER_ID;
+    const stub = env.TRACKER.getByName(trackerId);
 
     if (url.pathname === "/ws") {
       if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
         return new Response("expected websocket", { status: 426 });
       }
-      if (url.searchParams.get("role") === "admin" && !(await isAdmin(url, env))) {
+      if (url.searchParams.get("role") === "admin" && !(await isAdmin(url, trackerId, env))) {
         return refuseUpgrade();
       }
+      if (registry && url.searchParams.has("tracker")) registry.touch(trackerId);
       return stub.fetch(request);
     }
 
@@ -90,10 +147,27 @@ function refuseUpgrade(): Response {
   return new Response(null, { status: 101, webSocket: pair[0] });
 }
 
-async function isAdmin(url: URL, env: Env): Promise<boolean> {
-  const supplied = url.searchParams.get("key");
-  if (!supplied || !env.ADMIN_KEY) return false;
+/** The registry namespace, or null when this deployment serves one person. */
+function hostedTracker(env: Env): DurableObjectStub<Registry> | null {
+  if (env.MULTI_TENANT !== "1" || !env.REGISTRY) return null;
+  return env.REGISTRY.getByName("registry");
+}
 
+/**
+ * A hosted tracker is controlled by its own key, held hashed in the registry.
+ * The instance's ADMIN_KEY governs only the tracker this deployment was
+ * configured for, so one person's key can never drive somebody else's page.
+ */
+async function isAdmin(url: URL, trackerId: string, env: Env): Promise<boolean> {
+  const supplied = url.searchParams.get("key");
+  if (!supplied) return false;
+
+  const registry = hostedTracker(env);
+  if (registry && url.searchParams.has("tracker") && trackerId !== env.TRACKER_ID) {
+    return registry.verify(trackerId, supplied);
+  }
+
+  if (!env.ADMIN_KEY) return false;
   // Constant-time compare, on digests so the lengths always match.
   const digest = (value: string) => crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   const [a, b] = await Promise.all([digest(supplied), digest(env.ADMIN_KEY)]);

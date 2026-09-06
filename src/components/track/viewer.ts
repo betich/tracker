@@ -4,10 +4,10 @@
  * new browser is a new person, and clearing site data resets it. No accounts.
  */
 
-import { storagePrefix } from "@config";
-
-const ID_KEY = `${storagePrefix}:viewer`;
-const LIKED_KEY = `${storagePrefix}:liked`;
+/** One identity per browser, shared across every tracker it visits. */
+const ID_KEY = "tracker:viewer";
+/** Likes are per tracker, so two subjects never share a liked set. */
+const likedKey = (prefix: string) => `${prefix}:liked`;
 
 /** localStorage throws outright in some privacy modes, so every access is guarded. */
 function read(key: string): string | null {
@@ -48,8 +48,8 @@ export function viewerId(): string {
 }
 
 /** Which updates this device has liked. The server dedupes; this is for the UI. */
-export function readLiked(): Set<string> {
-  const raw = read(LIKED_KEY);
+export function readLiked(prefix: string): Set<string> {
+  const raw = read(likedKey(prefix));
   if (!raw) return new Set();
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -59,6 +59,6 @@ export function readLiked(): Set<string> {
   }
 }
 
-export function writeLiked(liked: Set<string>): void {
-  write(LIKED_KEY, JSON.stringify([...liked]));
+export function writeLiked(prefix: string, liked: Set<string>): void {
+  write(likedKey(prefix), JSON.stringify([...liked]));
 }

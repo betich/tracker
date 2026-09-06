@@ -7,7 +7,7 @@ import { useDeviceHeading, useGeolocation } from "./sensors";
 import { toDataUrl } from "./photo";
 import { formatAge, type LatLon } from "./geo";
 import { groundColor } from "./proximity";
-import { config } from "@config";
+import { useTenant } from "./tenant";
 import { MAX_UPDATE_TEXT, type Fix } from "@tracker/protocol";
 import "./track.css";
 
@@ -28,6 +28,7 @@ type Tab = "broadcast" | "updates";
  * Posting rides the same socket, so only the holder can add to the timeline.
  */
 export default function AdminApp() {
+  const { slug, subject, portrait } = useTenant();
   const [key] = useState(() => new URLSearchParams(location.search).get("key") ?? "");
   const [broadcasting, setBroadcasting] = useState(false);
   const [takeover, setTakeover] = useState(false);
@@ -37,7 +38,13 @@ export default function AdminApp() {
   const [picking, setPicking] = useState(false);
 
   const tracker = useTracker(
-    takeover ? { role: "admin", key, takeover: "1" } : { role: "admin", key },
+    {
+      role: "admin",
+      key,
+      ...(takeover ? { takeover: "1" } : {}),
+      // A hosted tracker is addressed by slug and checked against its own key.
+      ...(slug ? { tracker: slug } : {}),
+    },
     broadcasting,
   );
   const me = useGeolocation();
@@ -130,7 +137,7 @@ export default function AdminApp() {
       style={{ "--ground": groundColor(live ? LIVE_GROUND : IDLE_GROUND) } as React.CSSProperties}
     >
       <header className="flex shrink-0 items-center justify-between px-5 pb-1 pt-[max(0.85rem,env(safe-area-inset-top))]">
-        <span className="track-label text-[11px] font-bold">{config.subject} · admin</span>
+        <span className="track-label text-[11px] font-bold">{subject} · admin</span>
         <span className="track-label text-[10px] font-bold text-[var(--muted)]">
           {tracker.viewers} watching
         </span>
@@ -222,7 +229,7 @@ export default function AdminApp() {
         </div>
       )}
 
-      {config.portrait && <SpinnyMark headingRef={heading.live} />}
+      {portrait && <SpinnyMark headingRef={heading.live} />}
 
       <nav className="grid shrink-0 grid-cols-2 border-t border-[var(--hairline)] pb-[env(safe-area-inset-bottom)]">
         {(["broadcast", "updates"] as const).map((name) => (

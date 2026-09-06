@@ -18,7 +18,7 @@ import {
   steer,
 } from "./geo";
 import { glowColor, groundColor, proximity } from "./proximity";
-import { config } from "@config";
+import { useTenant } from "./tenant";
 import "./track.css";
 
 /** A fix older than this is shown as stale rather than live. */
@@ -27,7 +27,9 @@ const STALE_AFTER_MS = 20_000;
 type Tab = "compass" | "map" | "updates";
 
 export default function TrackApp() {
-  const tracker = useTracker({ role: "viewer" });
+  const { slug, subject, portrait } = useTenant();
+  // A hosted page names its tracker; the deployment's own uses the server default.
+  const tracker = useTracker(slug ? { role: "viewer", tracker: slug } : { role: "viewer" });
   const me = useGeolocation();
   const heading = useDeviceHeading();
 
@@ -95,7 +97,7 @@ export default function TrackApp() {
       style={{ "--ground": groundColor(nearness), "--glow": glowColor(nearness) } as React.CSSProperties}
     >
       <header className="flex shrink-0 items-center justify-between px-5 pb-1 pt-[max(0.85rem,env(safe-area-inset-top))]">
-        <span className="track-label text-[11px] font-bold">{config.subject}</span>
+        <span className="track-label text-[11px] font-bold">{subject}</span>
         <Status tracker={tracker} stale={stale} />
       </header>
 
@@ -181,7 +183,7 @@ export default function TrackApp() {
 
       <ContactButtons />
 
-      {config.portrait && <SpinnyMark headingRef={heading.live} reserveRight />}
+      {portrait && <SpinnyMark headingRef={heading.live} reserveRight />}
 
       <nav className="grid shrink-0 grid-cols-3 border-t border-[var(--hairline)] pb-[env(safe-area-inset-bottom)]">
         {(["compass", "map", "updates"] as const).map((name) => (

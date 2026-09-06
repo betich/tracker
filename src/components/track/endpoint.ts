@@ -14,8 +14,10 @@ export const TRACKER_URL = (
 ).replace(/\/$/, "");
 
 /** Where to fetch an update's photo. Immutable ids, so the browser caches it. */
-export function photoUrl(id: string): string {
-  return `${TRACKER_URL}/photo?id=${encodeURIComponent(id)}`;
+export function photoUrl(id: string, tracker: string | null): string {
+  const query = new URLSearchParams({ id });
+  if (tracker) query.set("tracker", tracker);
+  return `${TRACKER_URL}/photo?${query}`;
 }
 
 /** Websocket URL for a role, e.g. wss://…/ws?role=admin&key=… */

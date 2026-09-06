@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLon } from "./geo";
-import { config } from "@config";
+import { useTenant } from "./tenant";
 
 /** Leaflet's default marker images break under bundlers, so both pins are markup. */
 const dot = (className: string, html: string) =>
@@ -32,6 +32,7 @@ interface TrackMapProps {
  * and zooming aren't yanked back on every position update.
  */
 export default function TrackMap({ me, bundit, fitKey }: TrackMapProps) {
+  const { subject, mapFallbackCenter } = useTenant();
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const meMarker = useRef<L.Marker | null>(null);
@@ -46,8 +47,8 @@ export default function TrackMap({ me, bundit, fitKey }: TrackMapProps) {
       // Bottom right belongs to the contact buttons, and attribution must stay visible.
       attributionControl: false,
       center: [
-        me?.lat ?? bundit?.lat ?? config.mapFallbackCenter.lat,
-        me?.lon ?? bundit?.lon ?? config.mapFallbackCenter.lon,
+        me?.lat ?? bundit?.lat ?? mapFallbackCenter.lat,
+        me?.lon ?? bundit?.lon ?? mapFallbackCenter.lon,
       ],
       zoom: 16,
     });
@@ -94,7 +95,7 @@ export default function TrackMap({ me, bundit, fitKey }: TrackMapProps) {
     };
 
     place(meMarker, me, meIcon, "You");
-    place(bunditMarker, bundit, bunditIcon, config.subject);
+    place(bunditMarker, bundit, bunditIcon, subject);
 
     if (me && bundit) {
       const path: L.LatLngExpression[] = [

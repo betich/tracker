@@ -173,6 +173,13 @@ export class Tracker extends DurableObject<Env> {
     for (const ws of this.ctx.getWebSockets()) send(ws, { t: "update", update });
   }
 
+  /** Wipe everything. Called when a hosted tracker expires. */
+  async purge(): Promise<void> {
+    for (const ws of this.ctx.getWebSockets()) ws.close(1001, "expired");
+    await this.ctx.storage.deleteAll();
+    this.fix = null;
+  }
+
   /** Read-only snapshot, for clients that just want a poll rather than a socket. */
   snapshot(): Extract<ServerMessage, { t: "state" }> {
     return this.state() as Extract<ServerMessage, { t: "state" }>;

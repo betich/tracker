@@ -14,6 +14,9 @@ service, no database to provision. The deploy button clones this repo into your
 own account, creates the Durable Object, asks you for an admin key, and hands
 you a URL.
 
+**Don't want to host it?** [track.betich.me/new](https://track.betich.me/new)
+makes one in a few seconds.
+
 ---
 
 ## The client — `/`
@@ -76,6 +79,30 @@ frame, EXIF rotation honoured. Only the lock holder can post.
 
 ---
 
+## Two ways to run it
+
+**One person, self-hosted** — the default. The instance tracks whoever
+`tracker.config.ts` and `TRACKER_ID` say, served at `/` and `/admin`. That is
+all the deploy button gives you, and it is all most people want.
+
+**Many people, shared** — the `hosted` environment additionally exposes `/new`,
+where anyone can mint their own tracker and get back a share link plus an admin
+key. Each lives at `/t/<slug>`, in its own Durable Object, controlled by its own
+key: one tracker's key cannot drive another, the instance's `ADMIN_KEY` cannot
+drive a hosted one, and no hosted key can drive the instance's own. Hosted
+trackers are swept a week after they were last opened, taking their photos with
+them.
+
+```sh
+npx wrangler deploy              # one person
+npx wrangler deploy --env hosted # plus /new and /t/<slug>
+```
+
+The multi-tenant routes simply do not exist unless `MULTI_TENANT` is set, so a
+self-host has no creation endpoint and no registry.
+
+---
+
 ## Deploy
 
 Press the button above. You will be asked for `ADMIN_KEY` — the secret in the
@@ -130,7 +157,12 @@ ADMIN_KEY=<your dev key> node test/api.mjs
 
 `test/api.mjs` covers the admin lock and takeover, viewers being read-only,
 photo storage and caching, like deduplication, and the final-position flush. It
-runs against a throwaway tracker id, so it never touches a live timeline.
+runs against a throwaway tracker — minting a real one when pointed at a shared
+deployment — so it never touches a live timeline.
+
+`test/hosted.mjs` covers the shared deployment: creation, per-tracker config,
+state isolation, and every direction of the key-crossing checks above. Point it
+at a worker running `--env hosted`.
 
 ## How it works
 
@@ -142,6 +174,12 @@ write a viewer may make.
 Photos are stored as data URLs in the object's SQLite and served from a
 cacheable `/photo` route rather than pushed down the socket, so a viewer joining
 mid-journey does not replay megabytes of history.
+
+On a shared deployment a second Durable Object holds the registry — one row per
+hosted tracker, storing only a hash of its admin key. Every `/t/<slug>` is the
+same built page; the slug comes out of the URL at runtime and the tracker's name
+and contacts are fetched from the registry, which is what lets a static build
+serve an unbounded number of trackers.
 
 ## Licence
 
