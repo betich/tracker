@@ -1,11 +1,25 @@
 import { useState } from "react";
 import { TRACKER_URL } from "./endpoint";
+import { glowColor, groundColor } from "./palette";
 import "./track.css";
 
 interface Made {
   slug: string;
   adminKey: string;
 }
+
+/**
+ * There is no proximity to express here, so the screen sits at a fixed point on
+ * the ramp: far enough up to read as the primary colour rather than as black,
+ * and no further — this page is small type, and the muted labels stay above
+ * 4.5:1 against the ground here.
+ */
+const GROUND = 0.3;
+
+const ground = {
+  "--ground": groundColor(GROUND),
+  "--glow": glowColor(GROUND),
+} as React.CSSProperties;
 
 /**
  * Mints a tracker on a shared deployment. The admin key comes back exactly once
@@ -48,8 +62,9 @@ export default function CreateTracker() {
   if (made) return <Result made={made} />;
 
   return (
-    <div className="track flex min-h-[100dvh] flex-col justify-center font-mono">
-      <form onSubmit={submit} className="mx-auto w-full max-w-md space-y-6 px-6 py-10">
+    <div className="track relative flex min-h-[100dvh] flex-col justify-center font-mono" style={ground}>
+      <div className="track-glow pointer-events-none absolute inset-0" />
+      <form onSubmit={submit} className="relative mx-auto w-full max-w-md space-y-6 px-6 py-10">
         <div>
           <h1 className="text-[clamp(2rem,9vw,3rem)] font-bold leading-[0.95] tracking-tight">
             New tracker
@@ -128,8 +143,9 @@ function Result({ made }: { made: Made }) {
   const admin = `${share}/admin?key=${made.adminKey}`;
 
   return (
-    <div className="track flex min-h-[100dvh] flex-col justify-center font-mono">
-      <div className="mx-auto w-full max-w-md space-y-6 px-6 py-10">
+    <div className="track relative flex min-h-[100dvh] flex-col justify-center font-mono" style={ground}>
+      <div className="track-glow pointer-events-none absolute inset-0" />
+      <div className="relative mx-auto w-full max-w-md space-y-6 px-6 py-10">
         <h1 className="text-[clamp(2rem,9vw,3rem)] font-bold leading-[0.95] tracking-tight">
           Ready
         </h1>
