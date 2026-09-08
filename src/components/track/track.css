@@ -24,9 +24,10 @@
   --dead: rgb(244 243 255 / 0.4);
 
   /* A definite height, not just a floor: descendants size with height:100%,
-     and Leaflet needs a measurable box or it renders into nothing. */
-  height: 100dvh;
-  min-height: 100dvh;
+     and Leaflet needs a measurable box or it renders into nothing. The
+     viewport less the credit strip AppLayout puts under every page. */
+  height: var(--app-h, 100dvh);
+  min-height: var(--app-h, 100dvh);
   overflow: hidden;
   background: var(--ground);
   color: var(--ink);

@@ -99,8 +99,10 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
 function Notice({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-[100dvh] place-items-center bg-[var(--brand-ground)] px-8 text-center font-mono">
-      <p className="text-[11px] font-bold uppercase leading-relaxed tracking-[0.34em] text-[var(--brand-ink)]/70">
+    <div className="grid min-h-[var(--app-h,100dvh)] place-items-center bg-[var(--brand-ground)] px-8 text-center font-mono">
+      {/* Element opacity, not a `/70` colour modifier: Tailwind cannot fold an
+          alpha into a var() that already holds a full hsl() string. */}
+      <p className="text-[11px] font-bold uppercase leading-relaxed tracking-[0.34em] text-[var(--brand-ink)] opacity-70">
         {children}
       </p>
     </div>

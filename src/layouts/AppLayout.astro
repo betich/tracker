@@ -24,9 +24,18 @@ const { title, description = `Where ${config.subject} is.` } = Astro.props;
 const brandVars =
   `--brand-ground:${GROUND_DARK};--brand-glow:${GLOW_DARK};` +
   `--brand-ink:${INK};--brand-ink-contrast:${INK_CONTRAST};`;
+
+/*
+ * The credit strip below sits under every surface, so the app screens can no
+ * longer be a plain 100dvh. `--app-h` is what they take instead: still a
+ * definite height — Leaflet needs a measurable box — just shorter by the
+ * strip and the home-indicator inset the strip now carries.
+ */
+const footerVars =
+  `--footer-h:2.25rem;--app-h:calc(100dvh - var(--footer-h) - env(safe-area-inset-bottom));`;
 ---
 
-<html lang="en" style={brandVars}>
+<html lang="en" style={brandVars + footerVars}>
   <head>
     <meta charset="utf-8" />
     <!-- viewport-fit=cover so the safe-area insets the layout relies on resolve. -->
@@ -44,7 +53,16 @@ const brandVars =
       rel="stylesheet"
     />
   </head>
-  <body class="bg-[var(--brand-ground)]">
+  <body class="bg-[var(--brand-ground)] font-mono">
     <slot />
+    <footer
+      class="flex min-h-[var(--footer-h)] items-center justify-center pb-[env(safe-area-inset-bottom)] text-[9px] font-medium uppercase tracking-[0.28em] text-[var(--brand-ink)] opacity-50"
+    >
+      <span>
+        made with love by <a class="underline underline-offset-2" href="https://betich.me">betich.me</a>
+        <span aria-hidden="true" class="px-1.5">·</span>
+        <a class="underline underline-offset-2" href="https://github.com/betich/tracker">source</a>
+      </span>
+    </footer>
   </body>
 </html>

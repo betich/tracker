@@ -62,7 +62,7 @@ export default function CreateTracker() {
   if (made) return <Result made={made} />;
 
   return (
-    <div className="track relative flex min-h-[100dvh] flex-col justify-center font-mono" style={ground}>
+    <div className="track relative flex min-h-[var(--app-h,100dvh)] flex-col justify-center font-mono" style={ground}>
       <div className="track-glow pointer-events-none absolute inset-0" />
       <form onSubmit={submit} className="relative mx-auto w-full max-w-md space-y-6 px-6 py-10">
         <div>
@@ -143,7 +143,7 @@ function Result({ made }: { made: Made }) {
   const admin = `${share}/admin?key=${made.adminKey}`;
 
   return (
-    <div className="track relative flex min-h-[100dvh] flex-col justify-center font-mono" style={ground}>
+    <div className="track relative flex min-h-[var(--app-h,100dvh)] flex-col justify-center font-mono" style={ground}>
       <div className="track-glow pointer-events-none absolute inset-0" />
       <div className="relative mx-auto w-full max-w-md space-y-6 px-6 py-10">
         <h1 className="text-[clamp(2rem,9vw,3rem)] font-bold leading-[0.95] tracking-tight">

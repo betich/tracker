@@ -186,7 +186,7 @@ export default function TrackApp() {
 
       {portrait && <SpinnyMark headingRef={heading.live} reserveRight />}
 
-      <nav className="grid shrink-0 grid-cols-3 border-t border-[var(--hairline)] pb-[env(safe-area-inset-bottom)]">
+      <nav className="grid shrink-0 grid-cols-3 border-t border-[var(--hairline)]">
         {(["compass", "map", "updates"] as const).map((name) => (
           <button
             key={name}

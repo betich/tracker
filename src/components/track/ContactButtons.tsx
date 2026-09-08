@@ -59,7 +59,7 @@ export default function ContactButtons() {
   if (!PHONE && !LINE_ID) return null;
 
   return (
-    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] right-4 z-[2000] flex items-center gap-2.5">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+var(--footer-h)+5.25rem)] right-4 z-[2000] flex items-center gap-2.5">
       {LINE_ID && (
       <button
         type="button"

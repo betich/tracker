@@ -231,7 +231,7 @@ export default function AdminApp() {
 
       {portrait && <SpinnyMark headingRef={heading.live} />}
 
-      <nav className="grid shrink-0 grid-cols-2 border-t border-[var(--hairline)] pb-[env(safe-area-inset-bottom)]">
+      <nav className="grid shrink-0 grid-cols-2 border-t border-[var(--hairline)]">
         {(["broadcast", "updates"] as const).map((name) => (
           <button
             key={name}
