@@ -35,6 +35,14 @@ export interface TrackerConfig {
 
   /** Where the map opens before anyone's position is known. */
   mapFallbackCenter: { lat: number; lon: number };
+
+  /**
+   * The one colour the whole UI is built from. Everything else — the ground
+   * the proximity screen burns into, the halo behind the dial, the page
+   * background, the ink on light buttons — is a shade of this same hue, see
+   * `src/components/track/palette.ts`. Any CSS colour works; hex is easiest.
+   */
+  primaryColor: string;
 }
 
 /** Accepts the shapes a shell or a build UI is likely to hand over. */
@@ -59,6 +67,9 @@ export const config: TrackerConfig = {
 
   // Bangkok.
   mapFallbackCenter: { lat: 13.7563, lon: 100.5018 },
+
+  // The brand indigo this project shipped with.
+  primaryColor: "#7f7cff",
 };
 
 /** Storage keys are namespaced per subject so two trackers don't share likes. */

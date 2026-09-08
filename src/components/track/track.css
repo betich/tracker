@@ -1,13 +1,16 @@
 /*
  * /track is an app surface, not a page of the site: it takes over the viewport,
- * runs entirely in mono, and uses the brand indigo as its ground. `--ground` and
- * `--glow` are written from JS on every position update — the screen itself is
- * the proximity readout, brightening as the bundit closes in.
+ * runs entirely in mono, and uses the configured brand colour as its ground.
+ * `--ground` and `--glow` are written from JS on every position update — the
+ * screen itself is the proximity readout, brightening as the bundit closes
+ * in. Their defaults below, and `--ink`/`--ink-contrast`, fall back to the
+ * `--brand-*` custom properties AppLayout sets on `<html>` from palette.ts.
  */
 .track {
-  --ground: rgb(8 7 28);
-  --glow: rgb(160 158 255 / 0.06);
-  --ink: #f4f3ff;
+  --ground: var(--brand-ground, rgb(8 7 28));
+  --glow: var(--brand-glow, rgb(160 158 255 / 0.06));
+  --ink: var(--brand-ink, #f4f3ff);
+  --ink-contrast: var(--brand-ink-contrast, #12102e);
   --muted: rgb(244 243 255 / 0.55);
   --hairline: rgb(244 243 255 / 0.16);
   --tick: rgb(244 243 255 / 0.28);

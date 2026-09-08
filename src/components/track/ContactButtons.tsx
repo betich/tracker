@@ -77,7 +77,7 @@ export default function ContactButtons() {
         href={`tel:${PHONE}`}
         onClick={() => void copy(PHONE).then((ok) => ok && flash("phone"))}
         aria-label={`Call ${PHONE}`}
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--ink)] text-[#12102e] shadow-lg shadow-black/30 transition-transform active:scale-95"
+        className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--ink)] text-[var(--ink-contrast)] shadow-lg shadow-black/30 transition-transform active:scale-95"
       >
         {copied === "phone" ? (
           <span className="track-label text-[9px] font-bold">copied</span>

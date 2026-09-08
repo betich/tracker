@@ -91,7 +91,7 @@ export default function CreateTracker() {
         <button
           type="submit"
           disabled={!subject.trim() || busy}
-          className="track-label w-full rounded-2xl bg-[var(--ink)] py-6 text-[11px] font-bold text-[#12102e] disabled:opacity-40"
+          className="track-label w-full rounded-2xl bg-[var(--ink)] py-6 text-[11px] font-bold text-[var(--ink-contrast)] disabled:opacity-40"
         >
           {busy ? "Creating…" : "Create tracker"}
         </button>
@@ -149,7 +149,7 @@ function Result({ made }: { made: Made }) {
 
         <a
           href={share}
-          className="track-label block w-full rounded-2xl bg-[var(--ink)] py-6 text-center text-[11px] font-bold text-[#12102e]"
+          className="track-label block w-full rounded-2xl bg-[var(--ink)] py-6 text-center text-[11px] font-bold text-[var(--ink-contrast)]"
         >
           Open the tracker
         </a>

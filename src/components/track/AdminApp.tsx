@@ -6,7 +6,7 @@ import { useTracker } from "./useTracker";
 import { useDeviceHeading, useGeolocation } from "./sensors";
 import { toDataUrl } from "./photo";
 import { formatAge, type LatLon } from "./geo";
-import { groundColor } from "./proximity";
+import { groundColor } from "./palette";
 import { useTenant } from "./tenant";
 import { MAX_UPDATE_TEXT, type Fix } from "@tracker/protocol";
 import "./track.css";
@@ -326,7 +326,7 @@ function Composer({ live, send }: { live: boolean; send: ReturnType<typeof useTr
             type="button"
             disabled={!live || busy || (!text.trim() && !photo)}
             onClick={post}
-            className="track-label flex-1 rounded-2xl bg-[var(--ink)] py-5 text-[10px] font-bold text-[#12102e] disabled:opacity-40"
+            className="track-label flex-1 rounded-2xl bg-[var(--ink)] py-5 text-[10px] font-bold text-[var(--ink-contrast)] disabled:opacity-40"
           >
             Post
           </button>
@@ -368,7 +368,7 @@ function Button({
       className={`track-label w-full rounded-2xl border py-7 text-[12px] font-bold transition-colors disabled:opacity-40 ${
         muted
           ? "border-[var(--hairline)] text-[var(--muted)]"
-          : "border-transparent bg-[var(--ink)] text-[#12102e]"
+          : "border-transparent bg-[var(--ink)] text-[var(--ink-contrast)]"
       }`}
     >
       {children}

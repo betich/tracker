@@ -6,6 +6,7 @@
  * is the monospace the UI is built in.
  */
 import { config } from "@config";
+import { GLOW_DARK, GROUND_DARK, INK, INK_CONTRAST } from "@/components/track/palette";
 
 interface Props {
   title: string;
@@ -13,14 +14,24 @@ interface Props {
 }
 
 const { title, description = `Where ${config.subject} is.` } = Astro.props;
+
+/*
+ * Every page — not just /track — needs the brand shades, so they're set here
+ * as custom properties on the root element rather than only inside .track.
+ * track.css falls back to these; pages outside .track (tenant "not found",
+ * 404) reference them directly.
+ */
+const brandVars =
+  `--brand-ground:${GROUND_DARK};--brand-glow:${GLOW_DARK};` +
+  `--brand-ink:${INK};--brand-ink-contrast:${INK_CONTRAST};`;
 ---
 
-<html lang="en">
+<html lang="en" style={brandVars}>
   <head>
     <meta charset="utf-8" />
     <!-- viewport-fit=cover so the safe-area insets the layout relies on resolve. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#08071c" />
+    <meta name="theme-color" content={GROUND_DARK} />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
@@ -33,7 +44,7 @@ const { title, description = `Where ${config.subject} is.` } = Astro.props;
       rel="stylesheet"
     />
   </head>
-  <body class="bg-[#08071c]">
+  <body class="bg-[var(--brand-ground)]">
     <slot />
   </body>
 </html>

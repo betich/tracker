@@ -17,7 +17,8 @@ import {
   shortestTurn,
   steer,
 } from "./geo";
-import { glowColor, groundColor, proximity } from "./proximity";
+import { glowColor, groundColor } from "./palette";
+import { proximity } from "./proximity";
 import { useTenant } from "./tenant";
 import "./track.css";
 
