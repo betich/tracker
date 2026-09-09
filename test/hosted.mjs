@@ -139,6 +139,30 @@ if (SUPER_KEY) {
     JSON.stringify(alicesRow));
   check("it carries each tracker's colour",
     rows.find((r) => r.slug === tinted.body.slug)?.color === "#22c55e");
+
+  // --- deleting ------------------------------------------------------------
+  const doomed = await make({ subject: "doomed" });
+  const del = (slug, key) => fetch(
+    `${BASE}/api/trackers?slug=${slug}${key === undefined ? "" : `&key=${key}`}`,
+    { method: "DELETE" });
+
+  check("deleting refuses a missing key", (await del(doomed.body.slug)).status === 401);
+  check("deleting refuses a tracker's own key",
+    (await del(doomed.body.slug, doomed.body.adminKey)).status === 401);
+  check("it survived the refused deletions",
+    (await fetch(`${BASE}/api/tracker?slug=${doomed.body.slug}`)).status === 200);
+
+  check("the superadmin key deletes it", (await del(doomed.body.slug, SUPER_KEY)).status === 200);
+  check("it is gone from the public config",
+    (await fetch(`${BASE}/api/tracker?slug=${doomed.body.slug}`)).status === 404);
+  check("it is gone from the index",
+    !(await index(SUPER_KEY).then((r) => r.json())).some((r) => r.slug === doomed.body.slug));
+  check("deleting it again reports nothing to delete",
+    (await del(doomed.body.slug, SUPER_KEY)).status === 404);
+  check("deleting an unknown slug 404s", (await del("zzzzzz", SUPER_KEY)).status === 404);
+
+  check("its neighbours are untouched",
+    (await fetch(`${BASE}/api/tracker?slug=${alice.body.slug}`)).status === 200);
 } else {
   console.log("skip  superadmin index — set SUPERADMIN_KEY to cover it");
 }

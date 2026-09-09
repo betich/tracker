@@ -108,8 +108,12 @@ self-host has no creation endpoint and no registry.
 
 **Seeing what has been created** — `/superadmin` lists every tracker a shared
 deployment has minted: subject, slug, colour, when it was last opened and how
-long it has left. It is gated on its own secret, deliberately not `ADMIN_KEY`,
-so no tracker's key can enumerate the rest:
+long it has left. Each row can also be deleted on the spot, which purges its
+Durable Object exactly as the weekly sweep would — the same irreversible drop,
+just early. Deleting takes two taps on the row rather than a confirm dialog,
+and an armed one disarms itself after a few seconds. It is gated on its own
+secret, deliberately not `ADMIN_KEY`, so no tracker's key can enumerate or
+delete the rest:
 
 ```sh
 npx wrangler secret put SUPERADMIN_KEY --env hosted
@@ -212,9 +216,9 @@ deployment — so it never touches a live timeline.
 `test/hosted.mjs` covers the shared deployment: creation, per-tracker config,
 state isolation, and every direction of the key-crossing checks above. It also
 checks that a colour which is not a literal hex never reaches a stylesheet, and
-that no tracker's own key can read the superadmin index. Point it at a worker
-running `--env hosted`; set `SUPERADMIN_KEY` in the environment too, or those
-last checks are skipped.
+that no tracker's own key can read the superadmin index or delete through it.
+Point it at a worker running `--env hosted`; set `SUPERADMIN_KEY` in the
+environment too, or those last checks are skipped.
 
 ## Moving a timeline
 

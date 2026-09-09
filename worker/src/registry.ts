@@ -196,6 +196,21 @@ export class Registry extends DurableObject<Env> {
     this.ctx.storage.sql.exec("UPDATE trackers SET used_at = ? WHERE slug = ?", Date.now(), slug);
   }
 
+  /**
+   * Drop one tracker now, rather than waiting for it to go stale. False when
+   * there was no such slug, so the caller can say so instead of reporting a
+   * deletion that never happened.
+   */
+  async remove(slug: string): Promise<boolean> {
+    const present =
+      this.ctx.storage.sql
+        .exec<{ n: number }>("SELECT COUNT(*) AS n FROM trackers WHERE slug = ?", slug)
+        .one().n > 0;
+    if (!present) return false;
+    await this.drop(slug);
+    return true;
+  }
+
   /** Drop trackers nobody has opened in a week, and everything they held. */
   override async alarm(): Promise<void> {
     const cutoff = Date.now() - EXPIRY_MS;
@@ -203,16 +218,23 @@ export class Registry extends DurableObject<Env> {
       .exec<{ slug: string }>("SELECT slug FROM trackers WHERE used_at < ?", cutoff)
       .toArray();
 
-    for (const { slug } of stale) {
-      try {
-        await this.env.TRACKER.getByName(slug).purge();
-      } catch {
-        // The object may never have been written to; the row still goes.
-      }
-      this.ctx.storage.sql.exec("DELETE FROM trackers WHERE slug = ?", slug);
-    }
+    for (const { slug } of stale) await this.drop(slug);
 
     await this.ctx.storage.setAlarm(Date.now() + SWEEP_INTERVAL_MS);
+  }
+
+  /**
+   * Purge the object, then forget the row — the same order for an expiry sweep
+   * and a deletion by hand, so a tracker can never survive as an orphaned
+   * Durable Object the registry no longer lists.
+   */
+  private async drop(slug: string): Promise<void> {
+    try {
+      await this.env.TRACKER.getByName(slug).purge();
+    } catch {
+      // The object may never have been written to; the row still goes.
+    }
+    this.ctx.storage.sql.exec("DELETE FROM trackers WHERE slug = ?", slug);
   }
 }
 

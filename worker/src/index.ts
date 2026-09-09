@@ -131,6 +131,18 @@ export default {
       if (!(await secretMatches(url.searchParams.get("key"), env.SUPERADMIN_KEY))) {
         return new Response("unauthorized", { status: 401, headers: cors });
       }
+
+      // Deleting takes the tracker's Durable Object with it, so it is the same
+      // irreversible drop the weekly sweep performs — just on demand.
+      if (request.method === "DELETE") {
+        const slug = url.searchParams.get("slug") ?? "";
+        const removed = await registry.remove(slug);
+        return Response.json(
+          { removed },
+          { status: removed ? 200 : 404, headers: { ...cors, "Cache-Control": "no-store" } },
+        );
+      }
+
       return Response.json(await registry.list(), {
         headers: { ...cors, "Cache-Control": "no-store" },
       });
@@ -267,7 +279,7 @@ function isAllowedOrigin(origin: string | null, url: URL, env: Env): boolean {
 
 function corsHeaders(origin: string | null, allowed: boolean): Record<string, string> {
   const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "GET,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
     Vary: "Origin",
   };
   if (origin && allowed) headers["Access-Control-Allow-Origin"] = origin;
