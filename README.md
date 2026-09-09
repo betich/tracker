@@ -4,10 +4,18 @@ A live "where are you" tracker for one person and everyone waiting on them.
 One device broadcasts its position; everyone else gets a compass pointing at it,
 a distance in metres, a map, and a running feed of photo updates.
 
-Built for a graduation day, where "I'm near the arch" means nothing to five
+Built for a graduation day, where "I'm near the arch" means nothing to five  
 people in a crowd of two thousand.
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/betich/tracker)
+
+
+&nbsp;
+
+![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)
+
+&nbsp;
+
+Set your admin keys are you are good to go.
 
 One Cloudflare Worker serves the pages, the API, and the state — no second
 service, no database to provision. The deploy button clones this repo into your
