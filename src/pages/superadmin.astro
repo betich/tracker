@@ -1,0 +1,8 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import SuperAdmin from "@/components/track/SuperAdmin";
+---
+
+<AppLayout title="trackers · superadmin" description="Every tracker this deployment has minted.">
+  <SuperAdmin client:only="react" />
+</AppLayout>

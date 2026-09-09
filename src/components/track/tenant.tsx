@@ -19,6 +19,8 @@ export interface Tenant {
   mapFallbackCenter: { lat: number; lon: number };
   /** Namespaces this tracker's likes in local storage. */
   storagePrefix: string;
+  /** Chosen on /new. Null means wear the deployment's own colour. */
+  color: string | null;
 }
 
 const OWN_TENANT: Tenant = {
@@ -28,6 +30,7 @@ const OWN_TENANT: Tenant = {
   portrait: config.portrait,
   mapFallbackCenter: config.mapFallbackCenter,
   storagePrefix,
+  color: null,
 };
 
 const TenantContext = createContext<Tenant>(OWN_TENANT);
@@ -69,6 +72,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
                   portrait: config.portrait,
                   mapFallbackCenter: config.mapFallbackCenter,
                   storagePrefix: `t-${found.slug}`,
+                  color: found.color,
                 },
               }
             : { status: "missing" },

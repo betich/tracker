@@ -92,6 +92,57 @@ check("bob's viewers see nothing of alice",
   last(bobViewer, "state")?.fix === null && bobViewer.inbox.every((m) => m.t !== "update"),
   JSON.stringify(last(bobViewer, "state")));
 
+// --- per-tracker colour ----------------------------------------------------
+const tinted = await make({ subject: "tinted", color: "#22c55e" });
+const tintedConfig = await fetch(`${BASE}/api/tracker?slug=${tinted.body.slug}`).then((r) => r.json());
+check("a chosen colour comes back with the config", tintedConfig.color === "#22c55e",
+  JSON.stringify(tintedConfig.color));
+
+check("a tracker created without one has no colour", (await fetch(
+  `${BASE}/api/tracker?slug=${alice.body.slug}`).then((r) => r.json())).color === null);
+
+/*
+ * The colour is the one field that reaches a stylesheet, so anything that is
+ * not a literal hex has to be dropped rather than stored and served back.
+ */
+for (const [name, value] of [
+  ["a CSS payload", "red;}body{display:none}"],
+  ["a url()", "url(https://example.com/x)"],
+  ["a bare name", "rebeccapurple"],
+  ["a short hex", "#fff"],
+  ["a non-string", 12345],
+]) {
+  const bad = await make({ subject: "bad colour", color: value });
+  const stored = await fetch(`${BASE}/api/tracker?slug=${bad.body.slug}`).then((r) => r.json());
+  check(`${name} is refused as a colour`, stored.color === null, JSON.stringify(stored.color));
+}
+
+// --- superadmin index ------------------------------------------------------
+const SUPER_KEY = process.env.SUPERADMIN_KEY;
+const index = (key) => fetch(`${BASE}/api/trackers${key === undefined ? "" : `?key=${key}`}`);
+
+check("the index refuses a missing key", (await index()).status === 401);
+check("the index refuses a wrong key", (await index("nope")).status === 401);
+check("a tracker's own key cannot enumerate the rest",
+  (await index(alice.body.adminKey)).status === 401);
+
+if (SUPER_KEY) {
+  const listed = await index(SUPER_KEY);
+  check("the index is readable with the superadmin key", listed.status === 200);
+  const rows = await listed.json();
+  const alicesRow = rows.find((r) => r.slug === alice.body.slug);
+  check("it lists a tracker that was created", Boolean(alicesRow));
+  check("it carries no key or hash", !JSON.stringify(rows).includes(alice.body.adminKey)
+    && !JSON.stringify(rows).includes("key_hash"));
+  check("it reduces contacts to whether they exist",
+    alicesRow?.hasPhone === true && alicesRow?.phone === undefined,
+    JSON.stringify(alicesRow));
+  check("it carries each tracker's colour",
+    rows.find((r) => r.slug === tinted.body.slug)?.color === "#22c55e");
+} else {
+  console.log("skip  superadmin index — set SUPERADMIN_KEY to cover it");
+}
+
 for (const s of [aliceAdmin, crossed, instanceKeyOnHosted, hostedKeyOnOwn, ownAdmin, aliceViewer, bobViewer]) s.close();
 const failed = results.filter((r) => !r).length;
 console.log(`\n${results.length - failed}/${results.length} passed`);

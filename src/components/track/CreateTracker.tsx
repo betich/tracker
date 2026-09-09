@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { TRACKER_URL } from "./endpoint";
-import { glowColor, groundColor } from "./palette";
+import { paletteVars } from "./palette";
+import { config } from "@config";
 import "./track.css";
 
 interface Made {
@@ -16,10 +17,19 @@ interface Made {
  */
 const GROUND = 0.3;
 
-const ground = {
-  "--ground": groundColor(GROUND),
-  "--glow": glowColor(GROUND),
-} as React.CSSProperties;
+/**
+ * Offered as swatches so the common case is one tap. The native picker sits
+ * beside them for anything else, and whatever is chosen is what the whole page
+ * immediately turns — the form doubles as the preview.
+ */
+const PRESETS = [
+  config.primaryColor,
+  "#ff6b35",
+  "#f4436c",
+  "#22c55e",
+  "#0ea5e9",
+  "#eab308",
+] as const;
 
 /**
  * Mints a tracker on a shared deployment. The admin key comes back exactly once
@@ -30,6 +40,7 @@ export default function CreateTracker() {
   const [subject, setSubject] = useState("");
   const [phone, setPhone] = useState("");
   const [lineId, setLineId] = useState("");
+  const [color, setColor] = useState<string>(config.primaryColor);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [made, setMade] = useState<Made | null>(null);
@@ -47,6 +58,7 @@ export default function CreateTracker() {
           subject: subject.trim(),
           phone: phone.trim() || null,
           lineId: lineId.trim() || null,
+          color,
         }),
       });
       const body = (await response.json()) as Made | { error: string };
@@ -59,10 +71,13 @@ export default function CreateTracker() {
     }
   };
 
-  if (made) return <Result made={made} />;
+  if (made) return <Result made={made} color={color} />;
 
   return (
-    <div className="track relative flex min-h-[var(--app-h,100dvh)] flex-col justify-center font-mono" style={ground}>
+    <div
+      className="track relative flex min-h-[var(--app-h,100dvh)] flex-col justify-center font-mono"
+      style={paletteVars(GROUND, color) as React.CSSProperties}
+    >
       <div className="track-glow pointer-events-none absolute inset-0" />
       <form onSubmit={submit} className="relative mx-auto w-full max-w-md space-y-6 px-6 py-10">
         <div>
@@ -103,6 +118,48 @@ export default function CreateTracker() {
           />
         </Field>
 
+        <Field label="Colour" hint="The whole tracker is built from it.">
+          <div className="flex items-center gap-2.5 pt-1">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setColor(preset)}
+                aria-label={`Use ${preset}`}
+                aria-pressed={color === preset}
+                className="h-9 w-9 shrink-0 rounded-full border-2 transition-transform active:scale-90"
+                style={{
+                  background: preset,
+                  borderColor: color === preset ? "var(--ink)" : "transparent",
+                }}
+              />
+            ))}
+            {/*
+              The escape hatch for anything not offered. Deliberately a spectrum
+              rather than the current colour: painting it with `color` would make
+              it a second copy of whichever preset is selected.
+            */}
+            <label
+              className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-full border-2 transition-transform active:scale-90"
+              style={{
+                background:
+                  "conic-gradient(#ff4d4d,#ffd166,#7ff0a8,#38bdf8,#a78bfa,#f472b6,#ff4d4d)",
+                borderColor: PRESETS.includes(color as (typeof PRESETS)[number])
+                  ? "transparent"
+                  : "var(--ink)",
+              }}
+            >
+              <span className="sr-only">Pick any colour</span>
+              <input
+                type="color"
+                value={color}
+                onChange={(event) => setColor(event.target.value)}
+                className="absolute -left-2 -top-2 h-16 w-16 cursor-pointer border-0 bg-transparent p-0 opacity-0"
+              />
+            </label>
+          </div>
+        </Field>
+
         <button
           type="submit"
           disabled={!subject.trim() || busy}
@@ -137,13 +194,16 @@ function Field({
   );
 }
 
-function Result({ made }: { made: Made }) {
+function Result({ made, color }: { made: Made; color: string }) {
   const origin = typeof location === "undefined" ? "" : location.origin;
   const share = `${origin}/t/${made.slug}`;
   const admin = `${share}/admin?key=${made.adminKey}`;
 
   return (
-    <div className="track relative flex min-h-[var(--app-h,100dvh)] flex-col justify-center font-mono" style={ground}>
+    <div
+      className="track relative flex min-h-[var(--app-h,100dvh)] flex-col justify-center font-mono"
+      style={paletteVars(GROUND, color) as React.CSSProperties}
+    >
       <div className="track-glow pointer-events-none absolute inset-0" />
       <div className="relative mx-auto w-full max-w-md space-y-6 px-6 py-10">
         <h1 className="text-[clamp(2rem,9vw,3rem)] font-bold leading-[0.95] tracking-tight">

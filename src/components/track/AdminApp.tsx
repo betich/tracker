@@ -6,7 +6,7 @@ import { useTracker } from "./useTracker";
 import { useDeviceHeading, useGeolocation } from "./sensors";
 import { toDataUrl } from "./photo";
 import { formatAge, type LatLon } from "./geo";
-import { groundColor } from "./palette";
+import { paletteVars } from "./palette";
 import { useTenant } from "./tenant";
 import { MAX_UPDATE_TEXT, type Fix } from "@tracker/protocol";
 import "./track.css";
@@ -28,7 +28,7 @@ type Tab = "broadcast" | "updates";
  * Posting rides the same socket, so only the holder can add to the timeline.
  */
 export default function AdminApp() {
-  const { slug, subject, portrait } = useTenant();
+  const { slug, subject, portrait, color } = useTenant();
   const [key] = useState(() => new URLSearchParams(location.search).get("key") ?? "");
   const [broadcasting, setBroadcasting] = useState(false);
   const [takeover, setTakeover] = useState(false);
@@ -134,7 +134,7 @@ export default function AdminApp() {
   return (
     <div
       className="track flex flex-col font-mono"
-      style={{ "--ground": groundColor(live ? LIVE_GROUND : IDLE_GROUND) } as React.CSSProperties}
+      style={paletteVars(live ? LIVE_GROUND : IDLE_GROUND, color) as React.CSSProperties}
     >
       <header className="flex shrink-0 items-center justify-between px-5 pb-1 pt-[max(0.85rem,env(safe-area-inset-top))]">
         <span className="track-label text-[11px] font-bold">{subject} · admin</span>

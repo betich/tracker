@@ -17,7 +17,7 @@ import {
   shortestTurn,
   steer,
 } from "./geo";
-import { glowColor, groundColor } from "./palette";
+import { paletteVars } from "./palette";
 import { proximity } from "./proximity";
 import { useTenant } from "./tenant";
 import "./track.css";
@@ -28,7 +28,7 @@ const STALE_AFTER_MS = 20_000;
 type Tab = "compass" | "map" | "updates";
 
 export default function TrackApp() {
-  const { slug, subject, portrait } = useTenant();
+  const { slug, subject, portrait, color } = useTenant();
   // A hosted page names its tracker; the deployment's own uses the server default.
   const tracker = useTracker(slug ? { role: "viewer", tracker: slug } : { role: "viewer" });
   const me = useGeolocation();
@@ -95,7 +95,7 @@ export default function TrackApp() {
   return (
     <div
       className="track flex flex-col font-mono"
-      style={{ "--ground": groundColor(nearness), "--glow": glowColor(nearness) } as React.CSSProperties}
+      style={paletteVars(nearness, color) as React.CSSProperties}
     >
       <header className="flex shrink-0 items-center justify-between px-5 pb-1 pt-[max(0.85rem,env(safe-area-inset-top))]">
         <span className="track-label text-[11px] font-bold">{subject}</span>

@@ -106,6 +106,36 @@ export interface HostedTracker {
   subject: string;
   phone: string | null;
   lineId: string | null;
+  /** The tracker's chosen primary colour, or null to use the deployment's. */
+  color: string | null;
+}
+
+/**
+ * A colour is the one field that ends up inside a stylesheet, so only a literal
+ * `#rrggbb` is ever allowed to travel. Everything else becomes null and falls
+ * back to the deployment's own colour — never an unvalidated string in CSS.
+ */
+export const COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+
+export function normalizeColor(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().toLowerCase();
+  return COLOR_PATTERN.test(trimmed) ? trimmed : null;
+}
+
+/**
+ * One row of the superadmin index. Deliberately not the whole registry row:
+ * no key hash, and contact details are reduced to whether they exist, so the
+ * page never broadcasts somebody's phone number just to count trackers.
+ */
+export interface TrackerSummary {
+  slug: string;
+  subject: string;
+  color: string | null;
+  createdAt: number;
+  usedAt: number;
+  hasPhone: boolean;
+  hasLine: boolean;
 }
 
 /**

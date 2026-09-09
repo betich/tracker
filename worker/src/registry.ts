@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { MAX_UPDATE_TEXT, type HostedTracker } from "./protocol";
+import { MAX_UPDATE_TEXT, normalizeColor, type HostedTracker, type TrackerSummary } from "./protocol";
 import type { Env } from "./index";
 
 /** Idle time after which a hosted tracker and everything in it is dropped. */
@@ -48,6 +48,17 @@ export class Registry extends DurableObject<Env> {
         )
       `);
       ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS idx_trackers_used ON trackers(used_at)");
+      /*
+       * Added after the first trackers were already live, so it cannot ride on
+       * the CREATE above — an existing table is never re-created. Rows made
+       * before this point keep a null colour and render in the deployment's.
+       */
+      const columns = ctx.storage.sql
+        .exec<{ name: string }>("PRAGMA table_info(trackers)")
+        .toArray();
+      if (!columns.some((column) => column.name === "color")) {
+        ctx.storage.sql.exec("ALTER TABLE trackers ADD COLUMN color TEXT");
+      }
       ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS creations (
           at INTEGER NOT NULL,
@@ -65,6 +76,8 @@ export class Registry extends DurableObject<Env> {
     subject: string;
     phone: string | null;
     lineId: string | null;
+    /** Chosen on /new. Anything that isn't a literal hex is dropped. */
+    color?: string | null;
     /** Caller's address, or null when there is none to attribute to. */
     who: string | null;
   }): Promise<Created | { error: string }> {
@@ -99,11 +112,12 @@ export class Registry extends DurableObject<Env> {
     const adminKey = randomKey();
     const now = Date.now();
     this.ctx.storage.sql.exec(
-      "INSERT INTO trackers (slug, subject, phone, line_id, key_hash, created_at, used_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO trackers (slug, subject, phone, line_id, color, key_hash, created_at, used_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       slug,
       subject,
       clean(input.phone),
       clean(input.lineId),
+      normalizeColor(input.color),
       await sha256(adminKey),
       now,
       now,
@@ -118,14 +132,54 @@ export class Registry extends DurableObject<Env> {
   /** What a page needs to render this tracker. Null when there is no such slug. */
   lookup(slug: string): HostedTracker | null {
     const rows = this.ctx.storage.sql
-      .exec<{ slug: string; subject: string; phone: string | null; line_id: string | null }>(
-        "SELECT slug, subject, phone, line_id FROM trackers WHERE slug = ?",
-        slug,
-      )
+      .exec<{
+        slug: string;
+        subject: string;
+        phone: string | null;
+        line_id: string | null;
+        color: string | null;
+      }>("SELECT slug, subject, phone, line_id, color FROM trackers WHERE slug = ?", slug)
       .toArray();
     const row = rows[0];
     if (!row) return null;
-    return { slug: row.slug, subject: row.subject, phone: row.phone, lineId: row.line_id };
+    return {
+      slug: row.slug,
+      subject: row.subject,
+      phone: row.phone,
+      lineId: row.line_id,
+      // Re-checked on the way out, not just on the way in: a row written before
+      // the column was validated must not reach a stylesheet unexamined.
+      color: normalizeColor(row.color),
+    };
+  }
+
+  /**
+   * Every tracker, newest first, for the superadmin index. Returns no key hash
+   * and no contact details — see TrackerSummary.
+   */
+  list(): TrackerSummary[] {
+    return this.ctx.storage.sql
+      .exec<{
+        slug: string;
+        subject: string;
+        color: string | null;
+        created_at: number;
+        used_at: number;
+        phone: string | null;
+        line_id: string | null;
+      }>(
+        "SELECT slug, subject, color, created_at, used_at, phone, line_id FROM trackers ORDER BY created_at DESC",
+      )
+      .toArray()
+      .map((row) => ({
+        slug: row.slug,
+        subject: row.subject,
+        color: normalizeColor(row.color),
+        createdAt: row.created_at,
+        usedAt: row.used_at,
+        hasPhone: row.phone !== null,
+        hasLine: row.line_id !== null,
+      }));
   }
 
   /** True when this key controls this tracker. */

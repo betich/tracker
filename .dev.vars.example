@@ -3,3 +3,8 @@
 #
 # Generate one with:  openssl rand -hex 20
 ADMIN_KEY=
+
+# Unlocks /superadmin, the index of every tracker a shared deployment has
+# minted. Leave blank and that page — and the endpoint behind it — stay off.
+# Only meaningful with MULTI_TENANT; a self-host has nothing to index.
+SUPERADMIN_KEY=

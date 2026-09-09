@@ -95,6 +95,9 @@ drive a hosted one, and no hosted key can drive the instance's own. Hosted
 trackers are swept a week after they were last opened, taking their photos with
 them.
 
+Whoever mints one also picks its colour, and the whole tracker is built from
+that one value — see [Colour](#colour).
+
 ```sh
 npx wrangler deploy              # one person
 npx wrangler deploy --env hosted # plus /new and /t/<slug>
@@ -102,6 +105,20 @@ npx wrangler deploy --env hosted # plus /new and /t/<slug>
 
 The multi-tenant routes simply do not exist unless `MULTI_TENANT` is set, so a
 self-host has no creation endpoint and no registry.
+
+**Seeing what has been created** — `/superadmin` lists every tracker a shared
+deployment has minted: subject, slug, colour, when it was last opened and how
+long it has left. It is gated on its own secret, deliberately not `ADMIN_KEY`,
+so no tracker's key can enumerate the rest:
+
+```sh
+npx wrangler secret put SUPERADMIN_KEY --env hosted
+```
+
+While that secret is unset the endpoint behind the page returns 404 — a
+deployment only grows that surface once someone deliberately adds it. The index
+carries no admin keys or hashes, and reduces contact details to whether they
+exist rather than listing anybody's phone number.
 
 ---
 
@@ -147,6 +164,21 @@ compiled into the pages at all. A tracker created through `/new` is separate —
 its contacts are whatever its creator typed in, since supplying them is the
 opt-in.
 
+### Colour
+
+The whole UI is built from a single colour. Every shade — the ground the
+proximity screen burns into, the halo behind the dial, the page background, the
+ink on light buttons — is derived from it by holding its hue and sweeping
+lightness, so changing one value re-hues everything and nothing drifts out of
+step.
+
+`primaryColor` in [`tracker.config.ts`](./tracker.config.ts) sets it for the
+deployment. A tracker created through `/new` picks its own instead, from the
+swatches or the colour picker there, and wears it on `/t/<slug>` — the form is
+its own preview, so the page turns as you choose. Only a literal `#rrggbb` is
+accepted, on the way in and again on the way out: that string ends up in a
+stylesheet, so nothing else is ever allowed to travel.
+
 Two things live in [`wrangler.jsonc`](./wrangler.jsonc) because the server needs
 them: `TRACKER_ID`, which picks the Durable Object — changing it starts a clean
 timeline — and `ALLOWED_ORIGINS`, only needed if you host the frontend somewhere
@@ -178,8 +210,11 @@ runs against a throwaway tracker — minting a real one when pointed at a shared
 deployment — so it never touches a live timeline.
 
 `test/hosted.mjs` covers the shared deployment: creation, per-tracker config,
-state isolation, and every direction of the key-crossing checks above. Point it
-at a worker running `--env hosted`.
+state isolation, and every direction of the key-crossing checks above. It also
+checks that a colour which is not a literal hex never reaches a stylesheet, and
+that no tracker's own key can read the superadmin index. Point it at a worker
+running `--env hosted`; set `SUPERADMIN_KEY` in the environment too, or those
+last checks are skipped.
 
 ## Moving a timeline
 

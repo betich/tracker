@@ -21,10 +21,24 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   /** Set at deploy time, or with `wrangler secret put ADMIN_KEY`. */
   ADMIN_KEY: string;
+  /**
+   * Unlocks /superadmin, the index of every hosted tracker. Unset by default,
+   * and while it is unset the endpoint does not exist at all — a deployment
+   * only grows that surface when its operator deliberately adds the secret.
+   */
+  SUPERADMIN_KEY?: string;
 }
 
 /** The paths `run_worker_first` routes here; everything else is a static asset. */
-const API_PATHS = new Set(["/ws", "/state", "/photo", "/api/create", "/api/tracker", "/api/import"]);
+const API_PATHS = new Set([
+  "/ws",
+  "/state",
+  "/photo",
+  "/api/create",
+  "/api/tracker",
+  "/api/import",
+  "/api/trackers",
+]);
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -66,7 +80,12 @@ export default {
       if (!registry) return new Response("not enabled", { status: 404, headers: cors });
       if (request.method !== "POST") return new Response("use POST", { status: 405, headers: cors });
 
-      let body: { subject?: string; phone?: string | null; lineId?: string | null };
+      let body: {
+        subject?: string;
+        phone?: string | null;
+        lineId?: string | null;
+        color?: string | null;
+      };
       try {
         body = (await request.json()) as typeof body;
       } catch {
@@ -77,6 +96,7 @@ export default {
         subject: body.subject ?? "",
         phone: body.phone ?? null,
         lineId: body.lineId ?? null,
+        color: body.color ?? null,
         /*
          * Cloudflare overwrites this at the edge, so it cannot be spoofed in
          * production. `wrangler dev` supplies one too, which is why local test
@@ -96,6 +116,24 @@ export default {
       if (!found) return new Response("not found", { status: 404, headers: cors });
       registry.touch(slug);
       return Response.json(found, { headers: { ...cors, "Cache-Control": "no-store" } });
+    }
+
+    /*
+     * The superadmin index: every tracker this deployment has minted. Gated on
+     * its own secret rather than ADMIN_KEY, so the key that drives one tracker
+     * can never enumerate the rest — and 404s while the secret is unset, which
+     * keeps the surface off for every deployment that never asked for it.
+     */
+    if (url.pathname === "/api/trackers") {
+      if (!registry || !env.SUPERADMIN_KEY) {
+        return new Response("not enabled", { status: 404, headers: cors });
+      }
+      if (!(await secretMatches(url.searchParams.get("key"), env.SUPERADMIN_KEY))) {
+        return new Response("unauthorized", { status: 401, headers: cors });
+      }
+      return Response.json(await registry.list(), {
+        headers: { ...cors, "Cache-Control": "no-store" },
+      });
     }
 
     // Deliberately not `id`: /photo already uses that for the photo's own id.
@@ -199,10 +237,14 @@ async function isAdmin(url: URL, trackerId: string, env: Env): Promise<boolean> 
     return registry.verify(trackerId, supplied);
   }
 
-  if (!env.ADMIN_KEY) return false;
-  // Constant-time compare, on digests so the lengths always match.
+  return secretMatches(supplied, env.ADMIN_KEY);
+}
+
+/** Constant-time compare, on digests so the lengths always match. */
+async function secretMatches(supplied: string | null, expected: string | undefined): Promise<boolean> {
+  if (!supplied || !expected) return false;
   const digest = (value: string) => crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  const [a, b] = await Promise.all([digest(supplied), digest(env.ADMIN_KEY)]);
+  const [a, b] = await Promise.all([digest(supplied), digest(expected)]);
   return crypto.subtle.timingSafeEqual(a, b);
 }
 
