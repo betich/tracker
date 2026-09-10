@@ -4,7 +4,15 @@ A live "where are you" tracker for one person and everyone waiting on them.
 One device broadcasts its position; everyone else gets a compass pointing at it,
 a distance in metres, a map, and a running feed of photo updates.
 
+<p align="center">
+  <img src="docs/compasss.jpg" width="32%" alt="The client's compass: a dial holding north, a needle on the subject, and 195 m away in very large type">
+  <img src="docs/map.jpg" width="32%" alt="The client's map: both pins and the line between them, tiles tinted into the surface">
+  <img src="docs/updates.jpg" width="32%" alt="The admin's updates tab: a composer and the reel of posted photos">
+</p>
 
+<p align="center">
+  <sub>the compass and the map, then the admin posting an update</sub>
+</p>
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/betich/tracker)
 
