@@ -1,4 +1,6 @@
-# tracker
+# (bundit) tracker
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/betich/tracker)
 
 A live "where are you" tracker for one person and everyone waiting on them.
 One device broadcasts its position; everyone else gets a compass pointing at it,
@@ -13,8 +15,6 @@ a distance in metres, a map, and a running feed of photo updates.
 <p align="center">
   <sub>the compass and the map, then the admin posting an update</sub>
 </p>
-
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/betich/tracker)
 
 
 
