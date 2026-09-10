@@ -13,7 +13,9 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/ws", "/state", "/photo", "/api/*", "/t/*"],
+    // /new is in the list because the Worker decides whether it exists at all
+    // — see ALLOW_NEW_TRACKERS.
+    "run_worker_first": ["/ws", "/state", "/photo", "/api/*", "/t/*", "/new", "/new/*"],
     "not_found_handling": "404-page"
   },
 
@@ -36,7 +38,11 @@
     "TRACKER_ID": "bundit-live",
     // Extra origins allowed to reach the API. Same-origin is always allowed,
     // so this is only needed when the frontend is hosted somewhere else.
-    "ALLOWED_ORIGINS": ""
+    "ALLOWED_ORIGINS": "",
+    // Whether anyone may mint a tracker here, at /new. Off unless it is
+    // exactly "1" — a self-host has nobody to mint for anyway, since /new also
+    // needs the registry that only the hosted environment binds.
+    "ALLOW_NEW_TRACKERS": "0"
   },
 
   "observability": { "enabled": true },
@@ -66,8 +72,10 @@
       "vars": {
         "TRACKER_ID": "bundit-live",
         "ALLOWED_ORIGINS": "",
-        // Turns on /new, /t/<slug> and the registry.
-        "MULTI_TENANT": "1"
+        // Turns on /t/<slug> and the registry behind them.
+        "MULTI_TENANT": "1",
+        // And this instance is the one that takes newcomers.
+        "ALLOW_NEW_TRACKERS": "1"
       },
       "observability": { "enabled": true }
     }

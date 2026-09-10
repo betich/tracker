@@ -13,8 +13,14 @@ export interface Env {
   ASSETS: Fetcher;
   /** Only bound on the shared deployment; absent when self-hosting one person. */
   REGISTRY?: DurableObjectNamespace<Registry>;
-  /** "1" turns on /new and /t/<slug>. */
+  /** "1" turns on /t/<slug> and the registry behind it. */
   MULTI_TENANT?: string;
+  /**
+   * "1" opens /new, where anyone can mint a tracker. Off by default even on a
+   * shared deployment: serving the trackers that already exist is one thing,
+   * standing open for strangers to make more is a decision of its own.
+   */
+  ALLOW_NEW_TRACKERS?: string;
   /** Which subject this deployment tracks. One Durable Object per id. */
   TRACKER_ID?: string;
   /** Extra origins allowed to reach the API. Same-origin never needs listing. */
@@ -58,6 +64,16 @@ export default {
       return env.ASSETS.fetch(new Request(new URL(page, url.origin), request));
     }
 
+    /*
+     * The creation page is built into every deployment, so closing it is done
+     * here rather than by leaving it out: with creation off it 404s exactly
+     * like a path that was never there, and /api/create behind it does too.
+     */
+    if (url.pathname === "/new" || url.pathname === "/new/") {
+      if (!canCreate(env)) return notFound(env, url, request);
+      return env.ASSETS.fetch(request);
+    }
+
     if (!API_PATHS.has(url.pathname)) return env.ASSETS.fetch(request);
 
     const origin = request.headers.get("Origin");
@@ -77,7 +93,9 @@ export default {
     const registry = hostedTracker(env);
 
     if (url.pathname === "/api/create") {
-      if (!registry) return new Response("not enabled", { status: 404, headers: cors });
+      if (!registry || !canCreate(env)) {
+        return new Response("not enabled", { status: 404, headers: cors });
+      }
       if (request.method !== "POST") return new Response("use POST", { status: 405, headers: cors });
 
       let body: {
@@ -233,6 +251,20 @@ function refuseUpgrade(): Response {
 function hostedTracker(env: Env): DurableObjectStub<Registry> | null {
   if (env.MULTI_TENANT !== "1" || !env.REGISTRY) return null;
   return env.REGISTRY.getByName("registry");
+}
+
+/**
+ * Whether strangers may mint trackers here. Needs both switches: a registry to
+ * put them in, and a deployment that has said yes to being minted into.
+ */
+function canCreate(env: Env): boolean {
+  return env.ALLOW_NEW_TRACKERS === "1" && hostedTracker(env) !== null;
+}
+
+/** The built 404 page, under the status that belongs with it. */
+async function notFound(env: Env, url: URL, request: Request): Promise<Response> {
+  const page = await env.ASSETS.fetch(new Request(new URL("/404", url.origin), request));
+  return new Response(page.body, { status: 404, headers: page.headers });
 }
 
 /**
