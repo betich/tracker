@@ -4,18 +4,15 @@ A live "where are you" tracker for one person and everyone waiting on them.
 One device broadcasts its position; everyone else gets a compass pointing at it,
 a distance in metres, a map, and a running feed of photo updates.
 
-Built for a graduation day, where "I'm near the arch" means nothing to five  
-people in a crowd of two thousand.
+
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/betich/tracker)
 
 
 
-&nbsp;
+Set your admin keys are you are good to go.  (Either set a password yourself or use `openssl rand -hex 20` -&gt; recommended)
 
-![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)
 
-&nbsp;
-
-Set your admin keys are you are good to go.
 
 One Cloudflare Worker serves the pages, the API, and the state — no second
 service, no database to provision. The deploy button clones this repo into your
@@ -95,49 +92,43 @@ frame, EXIF rotation honoured. Only the lock holder can post.
 `tracker.config.ts` and `TRACKER_ID` say, served at `/` and `/admin`. That is
 all the deploy button gives you, and it is all most people want.
 
-**Many people, shared** — the `hosted` environment additionally exposes `/new`,
-where anyone can mint their own tracker and get back a share link plus an admin
-key. Each lives at `/t/<slug>`, in its own Durable Object, controlled by its own
-key: one tracker's key cannot drive another, the instance's `ADMIN_KEY` cannot
-drive a hosted one, and no hosted key can drive the instance's own. Hosted
-trackers are swept a week after they were last opened, taking their photos with
-them.
-
-Whoever mints one also picks its colour, and the whole tracker is built from
-that one value — see [Colour](#colour).
+**Many people, shared** — the `hosted` environment additionally serves
+`/t/<slug>`: a tracker per slug, each in its own Durable Object and controlled
+by its own key. One tracker's key cannot drive another, the instance's
+`ADMIN_KEY` cannot drive a hosted one, and no hosted key can drive the
+instance's own. Hosted trackers are swept a week after they were last opened,
+taking their photos with them.
 
 ```sh
 npx wrangler deploy              # one person
-npx wrangler deploy --env hosted # plus /new and /t/<slug>
+npx wrangler deploy --env hosted # plus /t/<slug>
 ```
 
 The multi-tenant routes simply do not exist unless `MULTI_TENANT` is set, so a
-self-host has no creation endpoint and no registry.
+self-host has no registry at all.
 
-**Seeing what has been created** — `/superadmin` lists every tracker a shared
-deployment has minted: subject, slug, colour, when it was last opened and how
-long it has left. Each row can also be deleted on the spot, which purges its
-Durable Object exactly as the weekly sweep would — the same irreversible drop,
-just early. Deleting takes two taps on the row rather than a confirm dialog,
-and an armed one disarms itself after a few seconds. It is gated on its own
-secret, deliberately not `ADMIN_KEY`, so no tracker's key can enumerate or
-delete the rest:
+**Letting strangers make their own** is a second switch, deliberately not the
+same one: `ALLOW_NEW_TRACKERS` in [`wrangler.jsonc`](./wrangler.jsonc), off
+unless it is `"1"`. It opens `/new`, where anyone can mint a tracker and get
+back a share link plus an admin key. With it off — which is how a deployment
+starts, and stays unless someone types the `1` — both the page and the
+`/api/create` behind it return 404, so a shared deployment can go on serving the
+trackers it already has without standing open to whoever finds the URL. The
+`hosted` environment here carries it on, because that environment is the
+instance at [track.betich.me](https://track.betich.me), which does take
+newcomers; a fork that wants the slugs but not the door sets it back to `"0"`.
+That instance also keeps a private index of what it has minted, gated on a
+secret of its own — nothing a deploy of this repo grows on its own.
 
-```sh
-npx wrangler secret put SUPERADMIN_KEY --env hosted
-```
-
-While that secret is unset the endpoint behind the page returns 404 — a
-deployment only grows that surface once someone deliberately adds it. The index
-carries no admin keys or hashes, and reduces contact details to whether they
-exist rather than listing anybody's phone number.
+Whoever mints a tracker also picks its colour, and the whole thing is built from
+that one value — see [Colour](#colour).
 
 ---
 
 ## Deploy
 
 Press the button above. You will be asked for `ADMIN_KEY` — the secret in the
-admin URL's `?key=`. Generate one:
+admin URL's `?key=`, and the only one a deployment needs. Generate one:
 
 ```sh
 openssl rand -hex 20
@@ -223,10 +214,10 @@ deployment — so it never touches a live timeline.
 
 `test/hosted.mjs` covers the shared deployment: creation, per-tracker config,
 state isolation, and every direction of the key-crossing checks above. It also
-checks that a colour which is not a literal hex never reaches a stylesheet, and
-that no tracker's own key can read the superadmin index or delete through it.
-Point it at a worker running `--env hosted`; set `SUPERADMIN_KEY` in the
-environment too, or those last checks are skipped.
+checks that a colour which is not a literal hex never reaches a stylesheet.
+Point it at a worker running `--env hosted`, which is the environment that has
+`ALLOW_NEW_TRACKERS` on — with creation closed, the checks that mint a tracker
+have nothing to talk to.
 
 ## Moving a timeline
 
